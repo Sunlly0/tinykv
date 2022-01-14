@@ -36,7 +36,10 @@ func (s *StandAloneStorage) Start() error {
 
 func (s *StandAloneStorage) Stop() error {
 	// Your Code Here (1).
-	//s.engine.Close()
+	err := s.engine.Close()
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -53,18 +56,20 @@ func (s *StandAloneStorage) Write(ctx *kvrpcpb.Context, batch []storage.Modify) 
 		switch b.Data.(type) {
 		//2. Put类型
 		case storage.Put:
-			err := engine_util.PutCF(s.engine.Kv, b.Cf(), b.Key(), b.Value())
+			put := b.Data.(storage.Put)
+			//err := engine_util.PutCF(s.engine.Kv, b.Cf(), b.Key(), b.Value())
+			err := engine_util.PutCF(s.engine.Kv, put.Cf, put.Key, put.Value)
 			if err != nil {
 				return err
 			}
-			return nil
 			//2.2 Delete类型
 		case storage.Delete:
-			err := engine_util.DeleteCF(s.engine.Kv, b.Cf(), b.Key())
+			del := b.Data.(storage.Delete)
+			//err := engine_util.DeleteCF(s.engine.Kv, b.Cf(), b.Key())
+			err := engine_util.DeleteCF(s.engine.Kv, del.Cf, del.Key)
 			if err != nil {
 				return err
 			}
-			return nil
 		}
 	}
 	return nil
@@ -83,8 +88,11 @@ func NewStandAloneStorageReader(txn *badger.Txn) *StandAloneStorageReader {
 
 func (r *StandAloneStorageReader) GetCF(cf string, key []byte) ([]byte, error) {
 	val, err := engine_util.GetCFFromTxn(r.txn, cf, key)
+	if err == badger.ErrKeyNotFound {
+		return nil, nil
+	}
 	if err != nil {
-		return nil, err
+		return val, err
 	}
 	return val, nil
 }
@@ -94,5 +102,7 @@ func (r *StandAloneStorageReader) IterCF(cf string) engine_util.DBIterator {
 }
 
 func (r *StandAloneStorageReader) Close() {
+	//Q:为啥要有Discard?
+	r.txn.Discard()
 	return
 }

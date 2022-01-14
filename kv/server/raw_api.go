@@ -17,16 +17,16 @@ func (server *Server) RawGet(_ context.Context, req *kvrpcpb.RawGetRequest) (*kv
 	if err != nil {
 		return &kvrpcpb.RawGetResponse{Error: err.Error()}, err
 	}
+	defer reader.Close()
 	//2. 获取val
 	val, err := reader.GetCF(req.GetCf(), req.GetKey())
 	if err != nil {
 		return &kvrpcpb.RawGetResponse{Error: err.Error()}, err
 	}
-	//if val == nil {
-	//	return &kvrpcpb.RawGetResponse{NotFound: true},nil
-	//}
-	return &kvrpcpb.RawGetResponse{Value: val}, nil
-	//return &kvrpcpb.RawGetResponse{Value:val,NotFound: false}, nil
+	if val == nil {
+		return &kvrpcpb.RawGetResponse{NotFound: true}, nil
+	}
+	return &kvrpcpb.RawGetResponse{Value: val, NotFound: false}, nil
 }
 
 // RawPut puts the target data into storage and returns the corresponding response
@@ -56,7 +56,8 @@ func (server *Server) RawDelete(_ context.Context, req *kvrpcpb.RawDeleteRequest
 	err := server.storage.Write(req.GetContext(), []storage.Modify{batch})
 	//错误处理
 	if err != nil {
-		return &kvrpcpb.RawDeleteResponse{Error: err.Error()}, err
+		//return &kvrpcpb.RawDeleteResponse{Error: err.Error()}, err
+		return &kvrpcpb.RawDeleteResponse{}, err
 	}
 	return &kvrpcpb.RawDeleteResponse{}, nil
 }
@@ -65,23 +66,34 @@ func (server *Server) RawDelete(_ context.Context, req *kvrpcpb.RawDeleteRequest
 func (server *Server) RawScan(_ context.Context, req *kvrpcpb.RawScanRequest) (*kvrpcpb.RawScanResponse, error) {
 	// Your Code Here (1).
 	// Hint: Consider using reader.IterCF
-	//1。获取reader
+	//1. 获取reader
 	reader, err := server.storage.Reader(req.GetContext())
 	if err != nil {
 		return &kvrpcpb.RawScanResponse{Error: err.Error()}, err
 	}
-	//2. 调用reader.IterCF函数
+	//2. 调用reader.IterCF函数,获取iter
 	iter := reader.IterCF(req.GetCf())
 	defer iter.Close()
-	//Q.为啥用defer??
-	var kvs []*kvrpcpb.KvPair
-	limit := req.Limit
+	//A:defer的作用：go语言用法，延迟调用，在return时执行，一般用于资源释放
 
-	iter.Seek(req.StartKey)
-	for ; iter.Valid(); iter.Next() {
+	var kvs []*kvrpcpb.KvPair
+	limit := req.GetLimit()
+
+	//for iter.Seek(req.GetStartKey()); limit != 0; limit-- {
+	//	item := iter.Item()
+	//	key := item.Key()
+	//	val, _ := item.Value()
+	//
+	//	pair := &kvrpcpb.KvPair{Key: key, Value: val}
+	//	kvs = append(kvs, pair)
+	//	iter.Next()
+	//}
+	for iter.Seek(req.GetStartKey()); iter.Valid(); iter.Next() {
 		item := iter.Item()
+		key := item.Key()
 		val, _ := item.Value()
-		pair := &kvrpcpb.KvPair{Key: item.Key(), Value: val}
+
+		pair := &kvrpcpb.KvPair{Key: key, Value: val}
 
 		kvs = append(kvs, pair)
 		limit--
