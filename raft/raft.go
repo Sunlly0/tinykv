@@ -134,6 +134,8 @@ type Raft struct {
 
 	//extra structure by Sunlly0
 	//Peers []uint64
+	VotedFor    uint64
+	VotedReject uint64
 
 	// heartbeat interval, should send
 	heartbeatTimeout int
@@ -170,26 +172,26 @@ func newRaft(c *Config) *Raft {
 	}
 	// Your Code Here (2A).
 	//return Raft
-	r :=&Raft{
-		id:c.ID,
-		RaftLog: newLog(c.Storage),
-		Prs: make(map[uint64] *Progress),
-		votes: make(map[uint64]bool),
+	r := &Raft{
+		id:               c.ID,
+		RaftLog:          newLog(c.Storage),
+		Prs:              make(map[uint64]*Progress),
+		votes:            make(map[uint64]bool),
 		heartbeatTimeout: c.HeartbeatTick,
-		electionTimeout: c.ElectionTick,
+		electionTimeout:  c.ElectionTick,
 	}
-	lastLogIndex:=r.RaftLog.LastIndex()
+	lastLogIndex := r.RaftLog.LastIndex()
 
 	//Q:如何存储peer
 	//A：刚开始想的是在Raft中增加一个数据结构，后来参考网上，可以直接使用Prs存储
-	for _,peer:=range c.peers{
-		if peer==r.id {
-			r.Prs[peer]=&Progress{Next:lastLogIndex+1,Match: lastLogIndex}
-		}else {
-			r.Prs[peer]=&Progress{Next: lastLogIndex+1}
+	for _, peer := range c.peers {
+		if peer == r.id {
+			r.Prs[peer] = &Progress{Next: lastLogIndex + 1, Match: lastLogIndex}
+		} else {
+			r.Prs[peer] = &Progress{Next: lastLogIndex + 1}
 		}
 	}
-	r.becomeFollower(0,None)
+	r.becomeFollower(0, None)
 	return r
 }
 
@@ -197,37 +199,37 @@ func newRaft(c *Config) *Raft {
 // current commit index to the given peer. Returns true if a message was sent.
 func (r *Raft) sendAppend(to uint64) bool {
 	// Your Code Here (2A).
-	entries:=[]*pb.Entry
-
-	r.RaftLog.Term(r.RaftLog.LastIndex())
-	msg := pb.Message{
-		MsgType: pb.MessageType_MsgAppend,
-		To:      to,
-		From:    r.id,
-		Term:    r.Term,
-		Commit: r.RaftLog.committed,
-		LogTerm: lastLogTerm,
-		Index:lastLogIndex,
-		Entries:entries ,
-	}
-	r.msgs = append(r.msgs, msg)
+	//entries:=[]*pb.Entry
+	//
+	//r.RaftLog.Term(r.RaftLog.LastIndex())
+	//msg := pb.Message{
+	//	MsgType: pb.MessageType_MsgAppend,
+	//	To:      to,
+	//	From:    r.id,
+	//	Term:    r.Term,
+	//	Commit: r.RaftLog.committed,
+	//	LogTerm: lastLogTerm,
+	//	Index:lastLogIndex,
+	//	Entries:entries ,
+	//}
+	//r.msgs = append(r.msgs, msg)
 	return false
 }
 
 func (r *Raft) sendAppendResponse(to uint64) bool {
 	// Your Code Here (2A).
-	entries:=[]*pb.Entry
-	msg := pb.Message{
-		MsgType: pb.MessageType_MsgAppendResponse,
-		To:      to,
-		From:    r.id,
-		Term:    r.Term,
-		Commit: r.RaftLog.committed,
-		LogTerm: prevLogTerm,
-		Index:prevLogIndex,
-		Entries:entries ,
-	}
-	r.msgs = append(r.msgs, msg)
+	//entries:=[]*pb.Entry
+	//msg := pb.Message{
+	//	MsgType: pb.MessageType_MsgAppendResponse,
+	//	To:      to,
+	//	From:    r.id,
+	//	Term:    r.Term,
+	//	Commit: r.RaftLog.committed,
+	//	LogTerm: prevLogTerm,
+	//	Index:prevLogIndex,
+	//	Entries:entries ,
+	//}
+	//r.msgs = append(r.msgs, msg)
 	return false
 }
 
@@ -235,7 +237,7 @@ func (r *Raft) sendAppendResponse(to uint64) bool {
 // send by Leader
 func (r *Raft) sendHeartbeat(to uint64) {
 	// Your Code Here (2A).
-	commit:=min(r.Prs[to].Match,r.RaftLog.committed)
+	commit := min(r.Prs[to].Match, r.RaftLog.committed)
 	msg := pb.Message{
 		MsgType: pb.MessageType_MsgHeartbeat,
 		To:      to,
@@ -248,7 +250,7 @@ func (r *Raft) sendHeartbeat(to uint64) {
 }
 
 //send by Follower, in normal situation
-func (r *Raft) sendHeartbeatResponse(to uint64,reject bool) {
+func (r *Raft) sendHeartbeatResponse(to uint64, reject bool) {
 	// by Sunlly0
 	msg := pb.Message{
 		MsgType: pb.MessageType_MsgHeartbeatResponse,
@@ -260,7 +262,6 @@ func (r *Raft) sendHeartbeatResponse(to uint64,reject bool) {
 	}
 	r.msgs = append(r.msgs, msg)
 }
-
 
 // sendRequestVote by Candidate
 func (r *Raft) sendRequestVote(to uint64, lastLogTerm uint64, lastLogIndex uint64) {
@@ -288,10 +289,10 @@ func (r *Raft) sendRequestVoteResponse(to uint64, voteGranted bool) {
 }
 
 //Reset Timeout
-func (r *Raft) resetTimeout(){
-	r.electionElapsed=0
-	r.heartbeatElapsed=0
-	r.electionElapsed=rand.Intn(r.electionTimeout)
+func (r *Raft) resetTimeout() {
+	r.electionElapsed = 0
+	r.heartbeatElapsed = 0
+	r.electionElapsed = -rand.Intn(r.electionTimeout)
 
 }
 
@@ -301,17 +302,17 @@ func (r *Raft) tick() {
 	//1.时间增加
 	//2.判断是否超时
 	switch r.State {
-	//2.1 Follower、candidate选举超时，处理：任期++，变成候选者，重新选举
-	case StateFollower,StateCandidate:
+	//2.1 Follower、candidate选举超时，处理：变成候选者，重新选举
+	case StateFollower, StateCandidate:
 		r.electionElapsed++
-		if r.electionElapsed>=r.electionTimeout{
+		if r.electionElapsed >= r.electionTimeout {
 			r.resetTimeout()
 			r.Step(pb.Message{MsgType: pb.MessageType_MsgHup})
 		}
 		//2.2 Leader心跳超时，处理：更新心跳并bcast心跳给所有追随者
 	case StateLeader:
 		r.heartbeatElapsed++
-		if r.heartbeatElapsed>=r.heartbeatTimeout{
+		if r.heartbeatElapsed >= r.heartbeatTimeout {
 			r.resetTimeout()
 			r.Step(pb.Message{MsgType: pb.MessageType_MsgBeat})
 		}
@@ -322,13 +323,13 @@ func (r *Raft) tick() {
 func (r *Raft) becomeFollower(term uint64, lead uint64) {
 	// Your Code Here (2A).
 	//1.状态更新为Follower
+	r.resetTimeout()
 	r.State = StateFollower
 	//2.设置任期和领导者
 	if term > r.Term {
 		r.Term = term
 	}
 	r.Lead = lead
-
 }
 
 // becomeCandidate transform this peer's state to candidate
@@ -337,16 +338,21 @@ func (r *Raft) becomeCandidate() {
 	//1.状态更新为Candidate，任期++，自己给自己投票
 	r.State = StateCandidate
 	r.Term++
-	r.votes=make(map[uint64]bool,0)
-	r.Vote=r.id
-	r.votes[r.id]=true
+	r.votes = make(map[uint64]bool, 0)
+	r.Vote = r.id
+	r.votes[r.id] = true
 
 	//2.发送选举信息
-	lastLogIndex:=r.RaftLog.LastIndex()
-	lastLogTerm,_:=r.RaftLog.Term(lastLogIndex)
-	for peer:=range r.Prs{
-		if peer!=r.id{
-			r.sendRequestVote(peer,lastLogTerm,lastLogIndex)
+	// 2.1 如果peers只有自己，直接当选
+	if len(r.Prs) == 1 {
+		r.Step(pb.Message{MsgType: pb.MessageType_MsgTransferLeader})
+	}
+	//2.2 发送选举消息给除自己以外所有的peers
+	lastLogIndex := r.RaftLog.LastIndex()
+	lastLogTerm, _ := r.RaftLog.Term(lastLogIndex)
+	for peer := range r.Prs {
+		if peer != r.id {
+			r.sendRequestVote(peer, lastLogTerm, lastLogIndex)
 		}
 	}
 }
@@ -355,6 +361,11 @@ func (r *Raft) becomeCandidate() {
 func (r *Raft) becomeLeader() {
 	// Your Code Here (2A).
 	// NOTE: Leader should propose a noop entry on its term
+	if r.State != StateLeader {
+		r.resetTimeout()
+		r.State = StateLeader
+		r.Lead = r.id
+	}
 }
 
 // Step the entrance of handle message, see `MessageType`
@@ -408,6 +419,7 @@ func (r *Raft) Step(m pb.Message) error {
 		case pb.MessageType_MsgHeartbeatResponse:
 			//2 extra
 		case pb.MessageType_MsgTransferLeader:
+			r.becomeLeader()
 		case pb.MessageType_MsgTimeoutNow:
 		}
 
@@ -417,8 +429,8 @@ func (r *Raft) Step(m pb.Message) error {
 		case pb.MessageType_MsgHup:
 		case pb.MessageType_MsgBeat:
 			//bcast Heartbeat by Leader:
-			for peer:=range r.Prs{
-				if peer!=r.id{
+			for peer := range r.Prs {
+				if peer != r.id {
 					r.sendHeartbeat(peer)
 				}
 			}
@@ -460,26 +472,48 @@ func (r *Raft) handleHeartbeat(m pb.Message) {
 }
 
 //handleHeartbeatResponse by leader
-func (r *Raft) handleHeartbeatResponse(m pb.Message){
+func (r *Raft) handleHeartbeatResponse(m pb.Message) {
 
 }
 
 // handleRequestVote by follower
 func (r *Raft) handleRequestVote(m pb.Message) {
-	msg := pb.Message{
-		MsgType: pb.MessageType_MsgRequestVoteResponse,
-		To:      to,
-		From:    r.id,
-		Term:    r.Term,
-		LogTerm: lastLogTerm,
-		Index:   lastLogIndex,
+	// 按Raft论文的算法描述来
+	//1.任期是否过期，return false
+	if m.Term < r.Term {
+		r.sendRequestVoteResponse(m.From, false)
 	}
-	r.msgs = append(r.msgs, msg)
+	//2.如果已经给别人投过票，return false
+	if r.Vote != None && r.Vote != m.From {
+		r.sendRequestVoteResponse(m.From, false)
+	}
+	//3.如果候选者日志没有自己新，(先判断Term再判断Index)，return false
+	lastLogIndex := r.RaftLog.LastIndex()
+	lastLogTerm, _ := r.RaftLog.Term(lastLogIndex)
+	if lastLogTerm < m.LogTerm || lastLogTerm == m.LogTerm && lastLogIndex < m.Index {
+		r.sendRequestVoteResponse(m.From, false)
+	}
+	//4.否则，投票给候选者
+	r.becomeFollower(m.Term, m.From)
+	r.Vote = m.From
+	r.sendRequestVoteResponse(m.From, true)
 }
 
 //handleHeartbeatResponse by candidate
-func (r *Raft) handleRequestVoteResponse(m pb.Message){
-
+func (r *Raft) handleRequestVoteResponse(m pb.Message) {
+	//统计选票数
+	if m.Reject {
+		r.VotedReject++
+	} else {
+		r.VotedFor++
+	}
+	//超过半数就可以决定是当选还是落选
+	if r.VotedFor > uint64(len(r.Prs)/2) {
+		r.Step(pb.Message{MsgType: pb.MessageType_MsgTransferLeader})
+	}
+	if r.VotedReject > uint64(len(r.Prs)/2) {
+		r.becomeFollower(r.Term, None)
+	}
 }
 
 // handleSnapshot handle Snapshot RPC request

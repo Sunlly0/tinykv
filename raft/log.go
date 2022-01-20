@@ -14,7 +14,10 @@
 
 package raft
 
-import pb "github.com/pingcap-incubator/tinykv/proto/pkg/eraftpb"
+import (
+	"github.com/pingcap-incubator/tinykv/log"
+	pb "github.com/pingcap-incubator/tinykv/proto/pkg/eraftpb"
+)
 
 // RaftLog manage the log entries, its struct look like:
 //
@@ -50,13 +53,30 @@ type RaftLog struct {
 	pendingSnapshot *pb.Snapshot
 
 	// Your Data Here (2A).
+	//Q:添加该数据结构的必要性在哪？
+	FirstIndex uint64
 }
 
 // newLog returns log using the given storage. It recovers the log
 // to the state that it just commits and applies the latest snapshot.
 func newLog(storage Storage) *RaftLog {
 	// Your Code Here (2A).
-	return nil
+	//Q:为啥newLog要这样初始化？
+	lo, _ := storage.FirstIndex()
+	hi, _ := storage.LastIndex()
+	entries, err := storage.Entries(lo, hi+1)
+	if err != nil {
+		log.Panic(err)
+	}
+	l := &RaftLog{
+		storage:    storage,
+		entries:    entries,
+		committed:  lo - 1,
+		applied:    lo - 1,
+		stabled:    hi,
+		FirstIndex: lo,
+	}
+	return l
 }
 
 // We need to compact the log entries in some point of time like
