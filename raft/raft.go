@@ -16,6 +16,7 @@ package raft
 
 import (
 	"errors"
+	"math/rand"
 
 	pb "github.com/pingcap-incubator/tinykv/proto/pkg/eraftpb"
 )
@@ -132,7 +133,7 @@ type Raft struct {
 	Lead uint64
 
 	//extra structure by Sunlly0
-	Peers []uint64
+	//Peers []uint64
 
 	// heartbeat interval, should send
 	heartbeatTimeout int
@@ -177,8 +178,17 @@ func newRaft(c *Config) *Raft {
 		heartbeatTimeout: c.HeartbeatTick,
 		electionTimeout: c.ElectionTick,
 	}
+	lastLogIndex:=r.RaftLog.LastIndex()
 
-	r.Peers=c.peers
+	//Q:如何存储peer
+	//A：刚开始想的是在Raft中增加一个数据结构，后来参考网上，可以直接使用Prs存储
+	for _,peer:=range c.peers{
+		if peer==r.id {
+			r.Prs[peer]=&Progress{Next:lastLogIndex+1,Match: lastLogIndex}
+		}else {
+			r.Prs[peer]=&Progress{Next: lastLogIndex+1}
+		}
+	}
 	r.becomeFollower(0,None)
 	return r
 }
@@ -188,8 +198,27 @@ func newRaft(c *Config) *Raft {
 func (r *Raft) sendAppend(to uint64) bool {
 	// Your Code Here (2A).
 	entries:=[]*pb.Entry
+
+	r.RaftLog.Term(r.RaftLog.LastIndex())
 	msg := pb.Message{
 		MsgType: pb.MessageType_MsgAppend,
+		To:      to,
+		From:    r.id,
+		Term:    r.Term,
+		Commit: r.RaftLog.committed,
+		LogTerm: lastLogTerm,
+		Index:lastLogIndex,
+		Entries:entries ,
+	}
+	r.msgs = append(r.msgs, msg)
+	return false
+}
+
+func (r *Raft) sendAppendResponse(to uint64) bool {
+	// Your Code Here (2A).
+	entries:=[]*pb.Entry
+	msg := pb.Message{
+		MsgType: pb.MessageType_MsgAppendResponse,
 		To:      to,
 		From:    r.id,
 		Term:    r.Term,
@@ -203,16 +232,35 @@ func (r *Raft) sendAppend(to uint64) bool {
 }
 
 // sendHeartbeat sends a heartbeat RPC to the given peer.
+// send by Leader
 func (r *Raft) sendHeartbeat(to uint64) {
 	// Your Code Here (2A).
+	commit:=min(r.Prs[to].Match,r.RaftLog.committed)
 	msg := pb.Message{
-		MsgType: pb.MessageType_MsgRequestVote,
+		MsgType: pb.MessageType_MsgHeartbeat,
 		To:      to,
 		From:    r.id,
 		Term:    r.Term,
+		//Q:为啥Heartbear会考虑commit,何为commit?
+		Commit: commit,
 	}
 	r.msgs = append(r.msgs, msg)
 }
+
+//send by Follower, in normal situation
+func (r *Raft) sendHeartbeatResponse(to uint64,reject bool) {
+	// by Sunlly0
+	msg := pb.Message{
+		MsgType: pb.MessageType_MsgHeartbeatResponse,
+		To:      to,
+		From:    r.id,
+		Term:    r.Term,
+		//Q:为啥HeartbearResponse会考虑reject?
+		Reject: reject,
+	}
+	r.msgs = append(r.msgs, msg)
+}
+
 
 // sendRequestVote by Candidate
 func (r *Raft) sendRequestVote(to uint64, lastLogTerm uint64, lastLogIndex uint64) {
@@ -225,7 +273,6 @@ func (r *Raft) sendRequestVote(to uint64, lastLogTerm uint64, lastLogIndex uint6
 		Index:   lastLogIndex,
 	}
 	r.msgs = append(r.msgs, msg)
-
 }
 
 // sendRequestVoteResponse by Follower, (or Candidate & Leader)
@@ -244,28 +291,30 @@ func (r *Raft) sendRequestVoteResponse(to uint64, voteGranted bool) {
 func (r *Raft) resetTimeout(){
 	r.electionElapsed=0
 	r.heartbeatElapsed=0
+	r.electionElapsed=rand.Intn(r.electionTimeout)
+
 }
 
 // tick advances the internal logical clock by a single tick.
 func (r *Raft) tick() {
 	// Your Code Here (2A).
 	//1.时间增加
-	r.heartbeatElapsed++
-	r.electionElapsed++
 	//2.判断是否超时
 	switch r.State {
-	//2.1 Follower超时，转换为候选者
-	case StateFollower:
+	//2.1 Follower、candidate选举超时，处理：任期++，变成候选者，重新选举
+	case StateFollower,StateCandidate:
+		r.electionElapsed++
 		if r.electionElapsed>=r.electionTimeout{
+			r.resetTimeout()
 			r.Step(pb.Message{MsgType: pb.MessageType_MsgHup})
-			r.becomeCandidate()
 		}
-
-	case StateCandidate:
-
+		//2.2 Leader心跳超时，处理：更新心跳并bcast心跳给所有追随者
 	case StateLeader:
-
-
+		r.heartbeatElapsed++
+		if r.heartbeatElapsed>=r.heartbeatTimeout{
+			r.resetTimeout()
+			r.Step(pb.Message{MsgType: pb.MessageType_MsgBeat})
+		}
 	}
 }
 
@@ -285,14 +334,21 @@ func (r *Raft) becomeFollower(term uint64, lead uint64) {
 // becomeCandidate transform this peer's state to candidate
 func (r *Raft) becomeCandidate() {
 	// Your Code Here (2A).
-	//1.状态更新为Candidate
+	//1.状态更新为Candidate，任期++，自己给自己投票
 	r.State = StateCandidate
+	r.Term++
+	r.votes=make(map[uint64]bool,0)
 	r.Vote=r.id
+	r.votes[r.id]=true
 
 	//2.发送选举信息
-
-	r.sendRequestVote()
-
+	lastLogIndex:=r.RaftLog.LastIndex()
+	lastLogTerm,_:=r.RaftLog.Term(lastLogIndex)
+	for peer:=range r.Prs{
+		if peer!=r.id{
+			r.sendRequestVote(peer,lastLogTerm,lastLogIndex)
+		}
+	}
 }
 
 // becomeLeader transform this peer's state to leader
@@ -303,6 +359,8 @@ func (r *Raft) becomeLeader() {
 
 // Step the entrance of handle message, see `MessageType`
 // on `eraftpb.proto` for what msgs should be handled
+
+// 注：项目屏蔽了消息接收的具体逻辑，所有对消息的处理都在Step()中实现
 func (r *Raft) Step(m pb.Message) error {
 	// Your Code Here (2A).
 	switch r.State {
@@ -342,6 +400,7 @@ func (r *Raft) Step(m pb.Message) error {
 		case pb.MessageType_MsgRequestVote:
 			r.handleRequestVote(m)
 		case pb.MessageType_MsgRequestVoteResponse:
+			r.handleRequestVoteResponse(m)
 		case pb.MessageType_MsgSnapshot:
 			r.handleSnapshot(m)
 		case pb.MessageType_MsgHeartbeat:
@@ -356,12 +415,17 @@ func (r *Raft) Step(m pb.Message) error {
 		switch m.MsgType {
 		//10 basic
 		case pb.MessageType_MsgHup:
-			r.becomeCandidate()
 		case pb.MessageType_MsgBeat:
+			//bcast Heartbeat by Leader:
+			for peer:=range r.Prs{
+				if peer!=r.id{
+					r.sendHeartbeat(peer)
+				}
+			}
 		case pb.MessageType_MsgPropose:
 		case pb.MessageType_MsgAppend:
-			r.handleAppendEntries(m)
 		case pb.MessageType_MsgAppendResponse:
+			r.handleAppendEntriesResponse(m)
 		case pb.MessageType_MsgRequestVote:
 			r.handleRequestVote(m)
 		case pb.MessageType_MsgRequestVoteResponse:
@@ -370,6 +434,7 @@ func (r *Raft) Step(m pb.Message) error {
 		case pb.MessageType_MsgHeartbeat:
 			r.handleHeartbeat(m)
 		case pb.MessageType_MsgHeartbeatResponse:
+			r.handleHeartbeatResponse(m)
 			//2 extra
 		case pb.MessageType_MsgTransferLeader:
 		case pb.MessageType_MsgTimeoutNow:
@@ -379,8 +444,14 @@ func (r *Raft) Step(m pb.Message) error {
 }
 
 // handleAppendEntries handle AppendEntries RPC request
+// by follower,candidate
 func (r *Raft) handleAppendEntries(m pb.Message) {
 	// Your Code Here (2A).
+	//
+}
+
+//handleAppendEntriesResponse by leader
+func (r *Raft) handleAppendEntriesResponse(m pb.Message) {
 }
 
 // handleHeartbeat handle Heartbeat RPC request
@@ -388,6 +459,12 @@ func (r *Raft) handleHeartbeat(m pb.Message) {
 	// Your Code Here (2A).
 }
 
+//handleHeartbeatResponse by leader
+func (r *Raft) handleHeartbeatResponse(m pb.Message){
+
+}
+
+// handleRequestVote by follower
 func (r *Raft) handleRequestVote(m pb.Message) {
 	msg := pb.Message{
 		MsgType: pb.MessageType_MsgRequestVoteResponse,
@@ -398,6 +475,11 @@ func (r *Raft) handleRequestVote(m pb.Message) {
 		Index:   lastLogIndex,
 	}
 	r.msgs = append(r.msgs, msg)
+}
+
+//handleHeartbeatResponse by candidate
+func (r *Raft) handleRequestVoteResponse(m pb.Message){
+
 }
 
 // handleSnapshot handle Snapshot RPC request
