@@ -199,38 +199,37 @@ func newRaft(c *Config) *Raft {
 // current commit index to the given peer. Returns true if a message was sent.
 func (r *Raft) sendAppend(to uint64) bool {
 	// Your Code Here (2A).
-	//entries:=[]*pb.Entry
-	//
-	//r.RaftLog.Term(r.RaftLog.LastIndex())
-	//msg := pb.Message{
-	//	MsgType: pb.MessageType_MsgAppend,
-	//	To:      to,
-	//	From:    r.id,
-	//	Term:    r.Term,
-	//	Commit: r.RaftLog.committed,
-	//	LogTerm: lastLogTerm,
-	//	Index:lastLogIndex,
-	//	Entries:entries ,
-	//}
-	//r.msgs = append(r.msgs, msg)
-	return false
+	entries:=[]*pb.Entry
+	prevLogIndex:=r.Prs[to].Next-1
+	prevLogTerm,_:=r.RaftLog.Term(prevLogIndex)
+
+	r.RaftLog.Term(r.RaftLog.LastIndex())
+	msg := pb.Message{
+		MsgType: pb.MessageType_MsgAppend,
+		To:      to,
+		From:    r.id,
+		Term:    r.Term,
+		Commit: r.RaftLog.committed,
+		LogTerm: prevLogTerm,
+		Index:prevLogIndex,
+		Entries:entries,
+	}
+	r.msgs = append(r.msgs, msg)
+	return true
 }
 
-func (r *Raft) sendAppendResponse(to uint64) bool {
+func (r *Raft) sendAppendResponse(to uint64,success bool)  {
 	// Your Code Here (2A).
-	//entries:=[]*pb.Entry
-	//msg := pb.Message{
-	//	MsgType: pb.MessageType_MsgAppendResponse,
-	//	To:      to,
-	//	From:    r.id,
-	//	Term:    r.Term,
-	//	Commit: r.RaftLog.committed,
-	//	LogTerm: prevLogTerm,
-	//	Index:prevLogIndex,
-	//	Entries:entries ,
-	//}
-	//r.msgs = append(r.msgs, msg)
-	return false
+	msg := pb.Message{
+		MsgType: pb.MessageType_MsgAppendResponse,
+		To:      to,
+		From:    r.id,
+		Term:    r.Term,
+		Reject: !success,
+		//LogTerm: prevLogTerm,
+		//Index:prevLogIndex,
+	}
+	r.msgs = append(r.msgs, msg)
 }
 
 // sendHeartbeat sends a heartbeat RPC to the given peer.
@@ -456,10 +455,37 @@ func (r *Raft) Step(m pb.Message) error {
 }
 
 // handleAppendEntries handle AppendEntries RPC request
-// by follower,candidate
+// by follower, or (candidate, leader?)
 func (r *Raft) handleAppendEntries(m pb.Message) {
 	// Your Code Here (2A).
-	//
+	//1.候选者接收到领导者的Append消息
+	if r.State==StateCandidate{
+		//1.1 消息所包含任期更高，变为追随者
+		if m.Term>r.Term{
+			r.becomeFollower(m.Term,m.From)
+			r.sendAppendResponse(m.From, true)
+		}
+		//1.2 自己任期高，拒绝
+		if m.Term<r.Term{
+			r.sendAppendResponse(m.From, false)
+		}
+		return
+	}
+
+	//2.跟随者.
+	//2.1任期是否过期，return false
+	if m.Term < r.Term {
+		r.sendAppendResponse(m.From, false)
+	}
+	//2.2 日志匹配不上，return false和自己的日志号，供leader参考匹配
+	else if r.RaftLog.LastIndex()<m.Index{
+		r.sendAppendResponse(m.From,false)
+	}else{
+		//接收
+		r.sendAppendResponse(m.From,true)
+	}
+
+
 }
 
 //handleAppendEntriesResponse by leader
