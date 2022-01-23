@@ -200,14 +200,15 @@ func newRaft(c *Config) *Raft {
 // current commit index to the given peer. Returns true if a message was sent.
 func (r *Raft) sendAppend(to uint64) bool {
 	// Your Code Here (2A).
-	entries:=make([]*pb.Entry,0)
-	prevLogIndex:=r.Prs[to].Next-1
-	prevLogTerm,_:=r.RaftLog.Term(prevLogIndex)
-	lastLogIndex:=r.RaftLog.Term(r.RaftLog.LastIndex())
+	entries := make([]*pb.Entry, 0)
+	nextIndex := r.Prs[to].Next
+	prevLogIndex := nextIndex - 1
+	prevLogTerm, _ := r.RaftLog.Term(prevLogIndex)
+	lastLogIndex, _ := r.RaftLog.Term(r.RaftLog.LastIndex())
 
 	//entries：从跟随者的nextIndex->leader的lastIndex
-	if prevLogIndex>=0&&prevLogIndex < lastLogIndex{
-		entries=r.RaftLog.Slice(prevLogIndex+1,lastLogIndex)
+	if prevLogIndex >= 0 && prevLogIndex < lastLogIndex {
+		entries = r.RaftLog.Slice(nextIndex, lastLogIndex)
 	}
 
 	msg := pb.Message{
@@ -216,22 +217,22 @@ func (r *Raft) sendAppend(to uint64) bool {
 		From:    r.id,
 		Term:    r.Term,
 		LogTerm: prevLogTerm,
-		Index:prevLogIndex,
-		Entries:entries,
-		Commit: r.RaftLog.committed,
+		Index:   prevLogIndex,
+		Entries: entries,
+		Commit:  r.RaftLog.committed,
 	}
 	r.msgs = append(r.msgs, msg)
 	return true
 }
 
-func (r *Raft) sendAppendResponse(to uint64,success bool)  {
+func (r *Raft) sendAppendResponse(to uint64, success bool) {
 	// Your Code Here (2A).
 	msg := pb.Message{
 		MsgType: pb.MessageType_MsgAppendResponse,
 		To:      to,
 		From:    r.id,
 		Term:    r.Term,
-		Reject: !success,
+		Reject:  !success,
 	}
 	r.msgs = append(r.msgs, msg)
 }
@@ -338,10 +339,15 @@ func (r *Raft) becomeFollower(term uint64, lead uint64) {
 // becomeCandidate transform this peer's state to candidate
 func (r *Raft) becomeCandidate() {
 	// Your Code Here (2A).
-	//1.状态更新为Candidate，任期++，自己给自己投票
+	//1.状态更新为Candidate，
 	r.State = StateCandidate
+	//任期++，
 	r.Term++
+	//清除以前的选票
+	r.VotedReject = 0
+	r.VotedFor = 0
 	r.votes = make(map[uint64]bool, 0)
+	//自己给自己投票
 	r.Vote = r.id
 	r.votes[r.id] = true
 
@@ -364,11 +370,38 @@ func (r *Raft) becomeCandidate() {
 func (r *Raft) becomeLeader() {
 	// Your Code Here (2A).
 	// NOTE: Leader should propose a noop entry on its term
+	//1. 状态转换
 	if r.State != StateLeader {
 		r.resetTimeout()
 		r.State = StateLeader
 		r.Lead = r.id
 	}
+	//2.对于leader，会维护每个节点的日志状态，初始化Next为lastLogIndex+1
+	lastLogIndex := r.RaftLog.LastIndex()
+	for peer := range r.Prs {
+		if peer != r.id {
+			r.Prs[peer].Next = lastLogIndex + 1
+		}
+		//Q:为啥要对自己的Next和Match做如此处理？because of noop entry
+		if peer == r.id {
+			r.Prs[peer].Next = lastLogIndex + 2
+			r.Prs[peer].Match = lastLogIndex + 1
+		}
+	}
+
+	// 3.发送带空的entries的AppendEntries的消息
+	//上面的初始化：NextIndex=lastLogIndex+1
+	//下面做append操作后，lastLogIndex++
+	//后续发送时：nextIndex==lastLogIndex，故为空
+	r.RaftLog.entries = append(r.RaftLog.entries, pb.Entry{Term: r.Term, Index: lastLogIndex + 1})
+	for peer := range r.Prs {
+		if peer != r.id {
+			r.sendAppend(peer)
+		}
+	}
+	//if len(r.Prs) == 1 {
+	//	r.RaftLog.committed = r.Prs[r.id].Match
+	//}
 }
 
 // Step the entrance of handle message, see `MessageType`
@@ -468,30 +501,53 @@ func (r *Raft) handleAppendEntries(m pb.Message) {
 		return
 	}
 	//2. 如果自己的任期比消息的低，return false 并变为追随者
-	if m.Term>r.Term{
-		r.becomeFollower(m.Term,m.From)
+	if m.Term > r.Term {
+		r.becomeFollower(m.Term, m.From)
 		r.sendAppendResponse(m.From, true)
 		return
 	}
 	//3.如果接收者没有能匹配上的leader的日志条目,即prevLogIndex和prevLogTerm的索引任期一样的条目
 	//m.Index即prevLogIndex,m.LogTerm即prevLogTerm
-	lastLogIndex:=r.RaftLog.LastIndex()
-	//3.1 如果leader认为的follow的Next大于实际的lastLogIndex, returnfalse
-	if lastLogIndex<m.Index {
+	lastLogIndex := r.RaftLog.LastIndex()
+	//3.1 如果leader认为的follow的Next大于实际的lastLogIndex, return false
+	if lastLogIndex < m.Index {
 		r.sendAppendResponse(m.From, false)
 		return
 	}
-	//取接收者的log[prevLogIndex]看能否和prevLogTerm能匹配上
-	logTerm, err:=r.RaftLog.Term(m.Index)
-	if err!=nil {
+	//3.2 取接收者的log[prevLogIndex]看能否和prevLogTerm能匹配上
+	logTerm, err := r.RaftLog.Term(m.Index)
+	if err != nil {
 		panic(err)
 	}
-
-	if logTerm!=m.LogTerm {
+	//不能匹配：return false
+	if logTerm != m.LogTerm {
 		r.sendAppendResponse(m.From, false)
 		return
+	} else {
+		//可以匹配上
+		//4.如果已经存在的条目和新条目有冲突(索引相同，任期不同)，则截断后续条目并删除
+		conflict, index := r.RaftLog.appendConflict(m.Entries)
+		if conflict {
+			r.RaftLog.deleteConflictEntries(index)
+		}
+		//5.追加新日志条目
+		r.RaftLog.apppendNewEntries(m.Entries)
+
+		//6.更新committed
+		//如果leader的Commit大于接收者的committed，则取leaderCommit和lastLogIndex的最小值作为更新
+		if m.Commit > r.RaftLog.committed {
+			r.RaftLog.committed = min(m.Commit, m.Index+uint64(len(m.Entries)))
+		}
+		r.sendAppendResponse(m.From, true)
+
 	}
 
+	if err == nil && m.Index < r.RaftLog.committed && pre_index_term == m.LogTerm {
+		message.Reject = false
+		message.Index = r.RaftLog.committed
+		r.msgs = append(r.msgs, message)
+		return
+	}
 	if err != nil || pre_index_term != m.LogTerm {
 		for _, entry := range r.RaftLog.uncommitEnts() {
 			temp := pb.Entry{Term: entry.Term, Index: entry.Index}
@@ -501,11 +557,15 @@ func (r *Raft) handleAppendEntries(m pb.Message) {
 		r.msgs = append(r.msgs, message)
 		return
 	}
+	r.RaftLog.Append(m.Entries)
+	if m.Commit > r.RaftLog.committed {
+		r.RaftLog.committed = min(m.Commit, m.Index+uint64(len(m.Entries)))
+	}
 	//1.候选者接收到领导者的Append消息
-	if r.State==StateCandidate{
+	if r.State == StateCandidate {
 		//1.1 消息所包含任期更高，变为追随者
-		if m.Term>r.Term{
-			r.becomeFollower(m.Term,m.From)
+		if m.Term > r.Term {
+			r.becomeFollower(m.Term, m.From)
 			r.sendAppendResponse(m.From, true)
 		}
 		//1.2 自己任期高，拒绝
@@ -518,38 +578,35 @@ func (r *Raft) handleAppendEntries(m pb.Message) {
 	//2.1任期是否过期，return false
 	if m.Term < r.Term {
 		r.sendAppendResponse(m.From, false)
+		return
 	}
 	//2.2 日志匹配不上，return false和自己的日志号，供leader参考匹配
-	else if r.RaftLog.LastIndex()<m.Index{
-			r.sendAppendResponse(m.From,false)
-		}else{
-			//接收
-			r.sendAppendResponse(m.From,true)
-		}
+	if r.RaftLog.LastIndex() < m.Index {
+		r.sendAppendResponse(m.From, false)
+	} else {
+		//接收
+		r.sendAppendResponse(m.From, true)
 	}
-
-
 }
 
 //handleAppendEntriesResponse by leader
 func (r *Raft) handleAppendEntriesResponse(m pb.Message) {
-	if m.Term>r.Term{
-		r.becomeFollower(m.Term,None)
+	if m.Term > r.Term {
+		r.becomeFollower(m.Term, None)
 		return
 	}
 	//1. 如果收到拒绝消息
-	if m.Reject{
-		index:=m.Index
-		r.Prs[m.To].Next=index
-		r.sendAppendMessage(m.From)
+	if m.Reject {
+		index := m.Index
+		r.Prs[m.To].Next = index
+		r.sendAppend(m.From)
 		return
-	}
-	//2. 如果接受到同意
-	else{
+	} else {
+		//2. 如果接受到同意
 		//更新领导者保存的Prs，节点信息
-		if m.Index>r.Prs[m.From].Match{
-			r.Prs[m.From].Match=m.Index
-			r.Prs[m.From].Next=m.Index+1
+		if m.Index > r.Prs[m.From].Match {
+			r.Prs[m.From].Match = m.Index
+			r.Prs[m.From].Next = m.Index + 1
 			//Q:updateCommit的作用是啥？
 			//A:更新leader的committed，并通知跟随者更新
 			r.updateCommit()
@@ -561,29 +618,28 @@ func (r *Raft) handleAppendEntriesResponse(m pb.Message) {
 func (r *Raft) updateCommit() {
 	//1.对所有的Prs.Match进行排序
 	// allMatch:=make([]uint64,len(r.Prs))
-	match:=make([]uint64,len(r.Prs))
-	for _,prs:=range r.Prs {
+	match := make([]uint64, len(r.Prs))
+	for _, prs := range r.Prs {
 		match.append(prs.Match)
 	}
 	sort.Sort(match)
 	//2. 找排序后的中位数
-	mid:=match[len(match)/2]
+	mid := match[len(match)/2]
 	//3.如果中位数大于committed，更新领导者的committed值
-	if mid>r.RaftLog.committed{
-		logTerm,_:=r.RaftLog.Term(mid)
+	if mid > r.RaftLog.committed {
+		logTerm, _ := r.RaftLog.Term(mid)
 		// 3.1 如果中位数的日志，任期已经过期
-		if logTerm<r.Term{
+		if logTerm < r.Term {
 			return
 		}
 		//3.2 更新committed，并通知跟随者更新
-		r.RaftLog.committed=mid
+		r.RaftLog.committed = mid
 		for peer := range r.Prs {
 			if peer != r.id {
 				r.sendAppend(peer)
 			}
 		}
 	}
-
 
 }
 
@@ -625,10 +681,10 @@ func (r *Raft) handleRequestVoteResponse(m pb.Message) {
 	//1.统计选票数
 	if m.Reject {
 		r.VotedReject++
-		r.votes[m.From]=false
+		r.votes[m.From] = false
 	} else {
 		r.VotedFor++
-		r.votes[m.From]=true
+		r.votes[m.From] = true
 	}
 	//超过半数就可以决定是当选还是落选
 	//2. 过半同意，成为领导者

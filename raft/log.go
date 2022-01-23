@@ -121,6 +121,40 @@ func (l *RaftLog) Term(i uint64) (uint64, error) {
 
 //extra funcs by Sunlly
 func (l *RaftLog) Slice(begin uint64, end uint64) []pb.Entry {
-	slice := l.entries[begin:end]
+	slice := (l.entries[begin:end])
 	return slice
+}
+
+//返回是否冲突，冲突的index
+func (l *RaftLog) appendConflict(entries []*pb.Entry) (bool, uint64) {
+	var index uint64
+	for _, entry := range entries {
+		if entry.Index < l.FirstIndex {
+			continue
+		}
+		if entry.Index <= l.LastIndex() {
+			logTerm, err := l.Term(entry.Index)
+			if err != nil {
+				panic(err)
+			}
+			//如果已经存在的条目和新条目有冲突(索引相同，任期不同)，
+			if logTerm != entry.Term {
+				index = entry.Index
+				return true, index
+			}
+		}
+	}
+	return false, index
+}
+
+//删除冲突的日志：从index开始往后的都删除
+func (l *RaftLog) deleteConflictEntries(index uint64) {
+	l.entries = l.entries[:index-1]
+}
+
+//添加新日志条目
+func (l *RaftLog) apppendNewEntries(entries []*pb.Entry) {
+	for _, entry := range entries {
+		l.entries = append(l.entries, *entry)
+	}
 }
