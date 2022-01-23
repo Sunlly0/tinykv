@@ -118,3 +118,9 @@ func (l *RaftLog) Term(i uint64) (uint64, error) {
 	}
 	return 0, nil
 }
+
+//extra funcs by Sunlly
+func (l *RaftLog) Slice(begin uint64, end uint64) []pb.Entry {
+	slice := l.entries[begin:end]
+	return slice
+}

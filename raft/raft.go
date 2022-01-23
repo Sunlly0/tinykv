@@ -17,6 +17,7 @@ package raft
 import (
 	"errors"
 	"math/rand"
+	"sort"
 
 	pb "github.com/pingcap-incubator/tinykv/proto/pkg/eraftpb"
 )
@@ -199,20 +200,25 @@ func newRaft(c *Config) *Raft {
 // current commit index to the given peer. Returns true if a message was sent.
 func (r *Raft) sendAppend(to uint64) bool {
 	// Your Code Here (2A).
-	entries:=[]*pb.Entry
+	entries:=make([]*pb.Entry,0)
 	prevLogIndex:=r.Prs[to].Next-1
 	prevLogTerm,_:=r.RaftLog.Term(prevLogIndex)
+	lastLogIndex:=r.RaftLog.Term(r.RaftLog.LastIndex())
 
-	r.RaftLog.Term(r.RaftLog.LastIndex())
+	//entries：从跟随者的nextIndex->leader的lastIndex
+	if prevLogIndex>=0&&prevLogIndex < lastLogIndex{
+		entries=r.RaftLog.Slice(prevLogIndex+1,lastLogIndex)
+	}
+
 	msg := pb.Message{
 		MsgType: pb.MessageType_MsgAppend,
 		To:      to,
 		From:    r.id,
 		Term:    r.Term,
-		Commit: r.RaftLog.committed,
 		LogTerm: prevLogTerm,
 		Index:prevLogIndex,
 		Entries:entries,
+		Commit: r.RaftLog.committed,
 	}
 	r.msgs = append(r.msgs, msg)
 	return true
@@ -226,8 +232,6 @@ func (r *Raft) sendAppendResponse(to uint64,success bool)  {
 		From:    r.id,
 		Term:    r.Term,
 		Reject: !success,
-		//LogTerm: prevLogTerm,
-		//Index:prevLogIndex,
 	}
 	r.msgs = append(r.msgs, msg)
 }
@@ -458,6 +462,45 @@ func (r *Raft) Step(m pb.Message) error {
 // by follower, or (candidate, leader?)
 func (r *Raft) handleAppendEntries(m pb.Message) {
 	// Your Code Here (2A).
+	// 1.消息中的任期过期，return false
+	if m.Term < r.Term {
+		r.sendAppendResponse(m.From, false)
+		return
+	}
+	//2. 如果自己的任期比消息的低，return false 并变为追随者
+	if m.Term>r.Term{
+		r.becomeFollower(m.Term,m.From)
+		r.sendAppendResponse(m.From, true)
+		return
+	}
+	//3.如果接收者没有能匹配上的leader的日志条目,即prevLogIndex和prevLogTerm的索引任期一样的条目
+	//m.Index即prevLogIndex,m.LogTerm即prevLogTerm
+	lastLogIndex:=r.RaftLog.LastIndex()
+	//3.1 如果leader认为的follow的Next大于实际的lastLogIndex, returnfalse
+	if lastLogIndex<m.Index {
+		r.sendAppendResponse(m.From, false)
+		return
+	}
+	//取接收者的log[prevLogIndex]看能否和prevLogTerm能匹配上
+	logTerm, err:=r.RaftLog.Term(m.Index)
+	if err!=nil {
+		panic(err)
+	}
+
+	if logTerm!=m.LogTerm {
+		r.sendAppendResponse(m.From, false)
+		return
+	}
+
+	if err != nil || pre_index_term != m.LogTerm {
+		for _, entry := range r.RaftLog.uncommitEnts() {
+			temp := pb.Entry{Term: entry.Term, Index: entry.Index}
+			message.Entries = append(message.Entries, &temp)
+		}
+		message.Index = r.RaftLog.committed
+		r.msgs = append(r.msgs, message)
+		return
+	}
 	//1.候选者接收到领导者的Append消息
 	if r.State==StateCandidate{
 		//1.1 消息所包含任期更高，变为追随者
@@ -466,12 +509,11 @@ func (r *Raft) handleAppendEntries(m pb.Message) {
 			r.sendAppendResponse(m.From, true)
 		}
 		//1.2 自己任期高，拒绝
-		if m.Term<r.Term{
-			r.sendAppendResponse(m.From, false)
-		}
+		// if m.Term<r.Term{
+		// 	r.sendAppendResponse(m.From, false)
+		// }
 		return
 	}
-
 	//2.跟随者.
 	//2.1任期是否过期，return false
 	if m.Term < r.Term {
@@ -479,10 +521,11 @@ func (r *Raft) handleAppendEntries(m pb.Message) {
 	}
 	//2.2 日志匹配不上，return false和自己的日志号，供leader参考匹配
 	else if r.RaftLog.LastIndex()<m.Index{
-		r.sendAppendResponse(m.From,false)
-	}else{
-		//接收
-		r.sendAppendResponse(m.From,true)
+			r.sendAppendResponse(m.From,false)
+		}else{
+			//接收
+			r.sendAppendResponse(m.From,true)
+		}
 	}
 
 
@@ -490,6 +533,58 @@ func (r *Raft) handleAppendEntries(m pb.Message) {
 
 //handleAppendEntriesResponse by leader
 func (r *Raft) handleAppendEntriesResponse(m pb.Message) {
+	if m.Term>r.Term{
+		r.becomeFollower(m.Term,None)
+		return
+	}
+	//1. 如果收到拒绝消息
+	if m.Reject{
+		index:=m.Index
+		r.Prs[m.To].Next=index
+		r.sendAppendMessage(m.From)
+		return
+	}
+	//2. 如果接受到同意
+	else{
+		//更新领导者保存的Prs，节点信息
+		if m.Index>r.Prs[m.From].Match{
+			r.Prs[m.From].Match=m.Index
+			r.Prs[m.From].Next=m.Index+1
+			//Q:updateCommit的作用是啥？
+			//A:更新leader的committed，并通知跟随者更新
+			r.updateCommit()
+		}
+	}
+}
+
+//updateCommit by leader, and then send to follower
+func (r *Raft) updateCommit() {
+	//1.对所有的Prs.Match进行排序
+	// allMatch:=make([]uint64,len(r.Prs))
+	match:=make([]uint64,len(r.Prs))
+	for _,prs:=range r.Prs {
+		match.append(prs.Match)
+	}
+	sort.Sort(match)
+	//2. 找排序后的中位数
+	mid:=match[len(match)/2]
+	//3.如果中位数大于committed，更新领导者的committed值
+	if mid>r.RaftLog.committed{
+		logTerm,_:=r.RaftLog.Term(mid)
+		// 3.1 如果中位数的日志，任期已经过期
+		if logTerm<r.Term{
+			return
+		}
+		//3.2 更新committed，并通知跟随者更新
+		r.RaftLog.committed=mid
+		for peer := range r.Prs {
+			if peer != r.id {
+				r.sendAppend(peer)
+			}
+		}
+	}
+
+
 }
 
 // handleHeartbeat handle Heartbeat RPC request
@@ -527,16 +622,20 @@ func (r *Raft) handleRequestVote(m pb.Message) {
 
 //handleHeartbeatResponse by candidate
 func (r *Raft) handleRequestVoteResponse(m pb.Message) {
-	//统计选票数
+	//1.统计选票数
 	if m.Reject {
 		r.VotedReject++
+		r.votes[m.From]=false
 	} else {
 		r.VotedFor++
+		r.votes[m.From]=true
 	}
 	//超过半数就可以决定是当选还是落选
+	//2. 过半同意，成为领导者
 	if r.VotedFor > uint64(len(r.Prs)/2) {
 		r.Step(pb.Message{MsgType: pb.MessageType_MsgTransferLeader})
 	}
+	//3. 过半反对，退回追随者
 	if r.VotedReject > uint64(len(r.Prs)/2) {
 		r.becomeFollower(r.Term, None)
 	}
