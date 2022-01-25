@@ -135,8 +135,9 @@ type Raft struct {
 
 	//extra structure by Sunlly0
 	//Peers []uint64
-	VotedFor    uint64
-	VotedReject uint64
+	VotedFor              uint64
+	VotedReject           uint64
+	randomElectionTimeout int
 
 	// heartbeat interval, should send
 	heartbeatTimeout int
@@ -247,7 +248,7 @@ func (r *Raft) sendHeartbeat(to uint64) {
 		To:      to,
 		From:    r.id,
 		Term:    r.Term,
-		//Q:为啥Heartbear会考虑commit,何为commit?
+		//Q:为啥Heartbeat会考虑commit?
 		Commit: commit,
 	}
 	r.msgs = append(r.msgs, msg)
@@ -262,6 +263,8 @@ func (r *Raft) sendHeartbeatResponse(to uint64, reject bool) {
 		From:    r.id,
 		Term:    r.Term,
 		//Q:为啥HeartbearResponse会考虑reject?
+		//A：每个消息都带有任期信息，如果接收者发现m.Term>r.Term，
+		//直接变为跟随者，并在response消息中附上Reject=true
 		Reject: reject,
 	}
 	r.msgs = append(r.msgs, msg)
@@ -296,8 +299,7 @@ func (r *Raft) sendRequestVoteResponse(to uint64, voteGranted bool) {
 func (r *Raft) resetTimeout() {
 	r.electionElapsed = 0
 	r.heartbeatElapsed = 0
-	r.electionElapsed = -rand.Intn(r.electionTimeout)
-
+	r.randomElectionTimeout = r.electionTimeout + rand.Intn(r.electionTimeout)
 }
 
 // tick advances the internal logical clock by a single tick.
@@ -309,7 +311,7 @@ func (r *Raft) tick() {
 	//2.1 Follower、candidate选举超时，处理：变成候选者，重新选举
 	case StateFollower, StateCandidate:
 		r.electionElapsed++
-		if r.electionElapsed >= r.electionTimeout {
+		if r.electionElapsed >= r.randomElectionTimeout {
 			r.resetTimeout()
 			r.Step(pb.Message{MsgType: pb.MessageType_MsgHup})
 		}
@@ -472,6 +474,7 @@ func (r *Raft) Step(m pb.Message) error {
 			}
 		case pb.MessageType_MsgPropose:
 		case pb.MessageType_MsgAppend:
+			r.handleAppendEntries(m)
 		case pb.MessageType_MsgAppendResponse:
 			r.handleAppendEntriesResponse(m)
 		case pb.MessageType_MsgRequestVote:
@@ -500,12 +503,20 @@ func (r *Raft) handleAppendEntries(m pb.Message) {
 		r.sendAppendResponse(m.From, false)
 		return
 	}
-	//2. 如果自己的任期比消息的低，return false 并变为追随者
+	//2.如果自己的任期比消息的低，return false 并变为追随者
+	//2.
 	if m.Term > r.Term {
 		r.becomeFollower(m.Term, m.From)
 		r.sendAppendResponse(m.From, true)
 		return
 	}
+	//2.2或自己是候选者收到任期至少相同的领导者消息，变为追随者
+	if m.Term == r.Term && r.State == StateCandidate {
+		r.becomeFollower(m.Term, m.From)
+		r.sendAppendResponse(m.From, true)
+		return
+	}
+
 	//3.如果接收者没有能匹配上的leader的日志条目,即prevLogIndex和prevLogTerm的索引任期一样的条目
 	//m.Index即prevLogIndex,m.LogTerm即prevLogTerm
 	lastLogIndex := r.RaftLog.LastIndex()
@@ -541,52 +552,6 @@ func (r *Raft) handleAppendEntries(m pb.Message) {
 		r.sendAppendResponse(m.From, true)
 
 	}
-
-	if err == nil && m.Index < r.RaftLog.committed && pre_index_term == m.LogTerm {
-		message.Reject = false
-		message.Index = r.RaftLog.committed
-		r.msgs = append(r.msgs, message)
-		return
-	}
-	if err != nil || pre_index_term != m.LogTerm {
-		for _, entry := range r.RaftLog.uncommitEnts() {
-			temp := pb.Entry{Term: entry.Term, Index: entry.Index}
-			message.Entries = append(message.Entries, &temp)
-		}
-		message.Index = r.RaftLog.committed
-		r.msgs = append(r.msgs, message)
-		return
-	}
-	r.RaftLog.Append(m.Entries)
-	if m.Commit > r.RaftLog.committed {
-		r.RaftLog.committed = min(m.Commit, m.Index+uint64(len(m.Entries)))
-	}
-	//1.候选者接收到领导者的Append消息
-	if r.State == StateCandidate {
-		//1.1 消息所包含任期更高，变为追随者
-		if m.Term > r.Term {
-			r.becomeFollower(m.Term, m.From)
-			r.sendAppendResponse(m.From, true)
-		}
-		//1.2 自己任期高，拒绝
-		// if m.Term<r.Term{
-		// 	r.sendAppendResponse(m.From, false)
-		// }
-		return
-	}
-	//2.跟随者.
-	//2.1任期是否过期，return false
-	if m.Term < r.Term {
-		r.sendAppendResponse(m.From, false)
-		return
-	}
-	//2.2 日志匹配不上，return false和自己的日志号，供leader参考匹配
-	if r.RaftLog.LastIndex() < m.Index {
-		r.sendAppendResponse(m.From, false)
-	} else {
-		//接收
-		r.sendAppendResponse(m.From, true)
-	}
 }
 
 //handleAppendEntriesResponse by leader
@@ -618,9 +583,14 @@ func (r *Raft) handleAppendEntriesResponse(m pb.Message) {
 func (r *Raft) updateCommit() {
 	//1.对所有的Prs.Match进行排序
 	// allMatch:=make([]uint64,len(r.Prs))
-	match := make([]uint64, len(r.Prs))
+	//Q:此处若令match为uint64类型的数组，则无法使用sort.Sort
+	//A:使用util.uint64Slice类型，已经实现了Sort所需的接口
+	match := make(uint64Slice, len(r.Prs))
+	i := 0
 	for _, prs := range r.Prs {
-		match.append(prs.Match)
+		//match = append(match, prs.Match)
+		match[i] = prs.Match
+		i++
 	}
 	sort.Sort(match)
 	//2. 找排序后的中位数
@@ -640,17 +610,36 @@ func (r *Raft) updateCommit() {
 			}
 		}
 	}
-
 }
 
 // handleHeartbeat handle Heartbeat RPC request
 func (r *Raft) handleHeartbeat(m pb.Message) {
 	// Your Code Here (2A).
+	//Q:commit部分，为何，如何处理？
+	//1. 如果任期过期
+	if r.Term > m.Term {
+		r.sendHeartbeatResponse(m.From, true)
+		return
+	}
+	//2.任期没有过期，重置timeout状态，维护leader的领导
+	r.becomeFollower(m.Term, m.From)
+	r.sendHeartbeatResponse(m.From, false)
 }
 
 //handleHeartbeatResponse by leader
 func (r *Raft) handleHeartbeatResponse(m pb.Message) {
-
+	//1.如果发现自己任期过期，则变为跟随者
+	if m.Reject {
+		if r.Term < m.Term {
+			r.becomeFollower(m.Term, None)
+			return
+		}
+	} else {
+		//2.否则保持领导者状态，检查Match，如果低于自己的LastLogIndex则发送Append同步
+		if r.Prs[m.From].Match < r.RaftLog.LastIndex() {
+			r.sendAppend(m.From)
+		}
+	}
 }
 
 // handleRequestVote by follower

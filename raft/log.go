@@ -120,8 +120,12 @@ func (l *RaftLog) Term(i uint64) (uint64, error) {
 }
 
 //extra funcs by Sunlly
-func (l *RaftLog) Slice(begin uint64, end uint64) []pb.Entry {
-	slice := (l.entries[begin:end])
+func (l *RaftLog) Slice(begin uint64, end uint64) []*pb.Entry {
+	var slice []*pb.Entry
+	for i := begin; i < end; i++ {
+		entry := l.entries[i]
+		slice = append(slice, &entry)
+	}
 	return slice
 }
 
