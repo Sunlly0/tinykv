@@ -197,6 +197,19 @@ func newRaft(c *Config) *Raft {
 	return r
 }
 
+//softState and hardState by Sunlly
+func (r *Raft) getSoftState() *SoftState {
+	return &SoftState{Lead: r.Lead, RaftState: r.State}
+}
+
+func (r *Raft) getHardState() pb.HardState {
+	return pb.HardState{
+		Term:   r.Term,
+		Vote:   r.Vote,
+		Commit: r.RaftLog.committed,
+	}
+}
+
 // sendAppend sends an append RPC with new entries (if any) and the
 // current commit index to the given peer. Returns true if a message was sent.
 func (r *Raft) sendAppend(to uint64) bool {
@@ -410,6 +423,7 @@ func (r *Raft) becomeLeader() {
 // on `eraftpb.proto` for what msgs should be handled
 
 // 注：项目屏蔽了消息接收的具体逻辑，所有对消息的处理都在Step()中实现
+//来自于其他节点或者上层RawNode
 func (r *Raft) Step(m pb.Message) error {
 	// Your Code Here (2A).
 	switch r.State {

@@ -1,15 +1,27 @@
 // Copyright 2015 The etcd Authors
+
 //
+
 // Licensed under the Apache License, Version 2.0 (the "License");
+
 // you may not use this file except in compliance with the License.
+
 // You may obtain a copy of the License at
+
 //
+
 //     http://www.apache.org/licenses/LICENSE-2.0
+
 //
+
 // Unless required by applicable law or agreed to in writing, software
+
 // distributed under the License is distributed on an "AS IS" BASIS,
+
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+
 // See the License for the specific language governing permissions and
+
 // limitations under the License.
 
 /*
@@ -23,6 +35,7 @@ Init part uses simple and understandable way to simulate the init state.
 Test part uses Step function to generate the scenario. Check part checks
 outgoing messages and state.
 */
+
 package raft
 
 import (
@@ -924,5 +937,173 @@ func acceptAndReply(m pb.Message) pb.Message {
 		Term:    m.Term,
 		MsgType: pb.MessageType_MsgAppendResponse,
 		Index:   m.Index + uint64(len(m.Entries)),
+	}
+}
+
+func Test_testUpdateTermFromMessage(t *testing.T) {
+	type args struct {
+		t     *testing.T
+		state StateType
+	}
+	tests := []struct {
+		name string
+		args args
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			testUpdateTermFromMessage(tt.args.t, tt.args.state)
+		})
+	}
+}
+
+func Test_testNonleaderStartElection(t *testing.T) {
+	type args struct {
+		t     *testing.T
+		state StateType
+	}
+	tests := []struct {
+		name string
+		args args
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			testNonleaderStartElection(tt.args.t, tt.args.state)
+		})
+	}
+}
+
+func Test_testNonleaderElectionTimeoutRandomized(t *testing.T) {
+	type args struct {
+		t     *testing.T
+		state StateType
+	}
+	tests := []struct {
+		name string
+		args args
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			testNonleaderElectionTimeoutRandomized(tt.args.t, tt.args.state)
+		})
+	}
+}
+
+func Test_testNonleadersElectionTimeoutNonconflict(t *testing.T) {
+	type args struct {
+		t     *testing.T
+		state StateType
+	}
+	tests := []struct {
+		name string
+		args args
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			testNonleadersElectionTimeoutNonconflict(tt.args.t, tt.args.state)
+		})
+	}
+}
+
+func Test_messageSlice_Len(t *testing.T) {
+	tests := []struct {
+		name string
+		s    messageSlice
+		want int
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.s.Len(); got != tt.want {
+				t.Errorf("messageSlice.Len() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_messageSlice_Less(t *testing.T) {
+	type args struct {
+		i int
+		j int
+	}
+	tests := []struct {
+		name string
+		s    messageSlice
+		args args
+		want bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.s.Less(tt.args.i, tt.args.j); got != tt.want {
+				t.Errorf("messageSlice.Less() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_messageSlice_Swap(t *testing.T) {
+	type args struct {
+		i int
+		j int
+	}
+	tests := []struct {
+		name string
+		s    messageSlice
+		args args
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.s.Swap(tt.args.i, tt.args.j)
+		})
+	}
+}
+
+func Test_commitNoopEntry(t *testing.T) {
+	type args struct {
+		r *Raft
+		s *MemoryStorage
+	}
+	tests := []struct {
+		name string
+		args args
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			commitNoopEntry(tt.args.r, tt.args.s)
+		})
+	}
+}
+
+func Test_acceptAndReply(t *testing.T) {
+	type args struct {
+		m pb.Message
+	}
+	tests := []struct {
+		name string
+		args args
+		want pb.Message
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := acceptAndReply(tt.args.m); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("acceptAndReply() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }

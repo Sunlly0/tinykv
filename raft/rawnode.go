@@ -70,11 +70,14 @@ type Ready struct {
 type RawNode struct {
 	Raft *Raft
 	// Your Data Here (2A).
+	preSoftState *SoftState
+	preHardState pb.HardState
 }
 
 // NewRawNode returns a new RawNode given configuration and a list of raft peers.
 func NewRawNode(config *Config) (*RawNode, error) {
 	// Your Code Here (2A).
+	rn := &RawNode{}
 	return nil, nil
 }
 
@@ -143,12 +146,60 @@ func (rn *RawNode) Step(m pb.Message) error {
 // Ready returns the current point-in-time state of this RawNode.
 func (rn *RawNode) Ready() Ready {
 	// Your Code Here (2A).
-	return Ready{}
+	//1.准备ready
+	r := rn.Raft
+	softState := r.getSoftState()
+	hardState := r.getHardState()
+
+	rd := Ready{
+		Entries:          r.RaftLog.unstableEntries(),
+		CommittedEntries: r.RaftLog.nextEnts(),
+		Messages:         r.msgs,
+		HardState:        hardState,
+		SoftState:        softState,
+		Snapshot:         *r.RaftLog.pendingSnapshot,
+	}
+	//2.保存状态
+	if !isHardStateEqual(rn.preHardState, r.getHardState()) {
+		rn.preHardState = hardState
+	}
+	if rn.preSoftState != r.getSoftState() {
+		rn.preSoftState = softState
+	}
+	//3.清空消息和快照
+	r.msgs = make([]pb.Message, 0)
+	r.RaftLog.pendingSnapshot = nil
+
+	return rd
 }
 
 // HasReady called when RawNode user need to check if any Ready pending.
 func (rn *RawNode) HasReady() bool {
 	// Your Code Here (2A).
+	r := rn.Raft
+	//1. softState和hardState发生变化
+	if !IsEmptyHardState(r.getHardState()) {
+		if !isHardStateEqual(rn.preHardState, r.getHardState()) {
+			return true
+		}
+	}
+	//Q:需要判断软状态么？
+	if rn.preSoftState != r.getSoftState() {
+		return true
+	}
+
+	//2.unstable entries和uncommit entries存在
+	if len(r.RaftLog.unstableEntries()) > 0 || len(r.RaftLog.nextEnts()) > 0 {
+		return true
+	}
+	//3.有msgs需要发送
+	if len(r.msgs) > 0 {
+		return true
+	}
+	//4.快照不为空
+	if !IsEmptySnap(r.RaftLog.pendingSnapshot) {
+		return true
+	}
 	return false
 }
 
@@ -156,6 +207,7 @@ func (rn *RawNode) HasReady() bool {
 // last Ready results.
 func (rn *RawNode) Advance(rd Ready) {
 	// Your Code Here (2A).
+
 }
 
 // GetProgress return the Progress of this node and its peers, if this

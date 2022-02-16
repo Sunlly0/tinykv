@@ -62,12 +62,21 @@ type RaftLog struct {
 func newLog(storage Storage) *RaftLog {
 	// Your Code Here (2A).
 	//Q:为啥newLog要这样初始化？
+	//A: 将storage中的条目加载到Log中。对于未持久化的条目必须加载，对于已持久化的条目（已应用），加载会为后续带来方便。
+	//lo，即storage.FirstIndex
 	lo, _ := storage.FirstIndex()
 	hi, _ := storage.LastIndex()
+	//if err !=nil{
+	// 	panic(err)
+	// }
 	entries, err := storage.Entries(lo, hi+1)
 	if err != nil {
 		log.Panic(err)
 	}
+	//A:关于此处为何这样初始化，参考RaftLog的结构
+	//  snapshot/first.....applied....committed....stabled.....last
+	//  --------|------------------------------------------------|
+	//                            log entries
 	l := &RaftLog{
 		storage:    storage,
 		entries:    entries,
