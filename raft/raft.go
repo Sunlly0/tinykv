@@ -215,8 +215,13 @@ func (r *Raft) getHardState() pb.HardState {
 // current commit index to the given peer. Returns true if a message was sent.
 func (r *Raft) sendAppend(to uint64) bool {
 	// Your Code Here (2A).
+	//Q:为啥需要添加这个条件？是因为Next==0的时候一定是空的entries吗？
+	if r.Prs[to].Match == 0 && r.Prs[to].Next == 0 {
+		return false
+	}
 	entries := make([]*pb.Entry, 0)
 	nextIndex := r.Prs[to].Next
+	//如果不对next==0做判断，此处的prevLogIndex将为负数
 	prevLogIndex := nextIndex - 1
 	prevLogTerm, _ := r.RaftLog.Term(prevLogIndex)
 	lastLogIndex, _ := r.RaftLog.Term(r.RaftLog.LastIndex())
@@ -370,13 +375,17 @@ func (r *Raft) becomeCandidate() {
 	r.votes[r.id] = true
 	r.VotedFor++
 
-	//2.发送选举信息
-	// 2.1 如果peers只有自己，直接当选
-	if len(r.Prs) == 1 {
-		// r.Step(pb.Message{MsgType: pb.MessageType_MsgTransferLeader})
-		r.becomeLeader()
-	}
-	//2.2 发送选举消息给除自己以外所有的peers
+	//根据测试逻辑，becomeCandidate中只做状态修改，不发送选举消息
+	// // 2. 如果peers只有自己，直接当选
+	// if len(r.Prs) == 1 {
+	// 	// r.Step(pb.Message{MsgType: pb.MessageType_MsgTransferLeader})
+	// 	r.becomeLeader()
+	// }
+}
+
+func (r *Raft) bcastRequestVote() {
+	//发送选举信息
+	//候选者发送选举消息给除自己以外所有的peers
 	lastLogIndex := r.RaftLog.LastIndex()
 	lastLogTerm, _ := r.RaftLog.Term(lastLogIndex)
 	for peer := range r.Prs {
@@ -419,9 +428,9 @@ func (r *Raft) becomeLeader() {
 			r.sendAppend(peer)
 		}
 	}
-	//if len(r.Prs) == 1 {
-	//	r.RaftLog.committed = r.Prs[r.id].Match
-	//}
+	if len(r.Prs) == 1 {
+		r.RaftLog.committed = r.Prs[r.id].Match
+	}
 }
 
 // Step the entrance of handle message, see `MessageType`
@@ -437,6 +446,11 @@ func (r *Raft) Step(m pb.Message) error {
 		//10 basic
 		case pb.MessageType_MsgHup:
 			r.becomeCandidate()
+			if len(r.Prs) == 1 {
+				r.becomeLeader()
+			} else {
+				r.bcastRequestVote()
+			}
 		case pb.MessageType_MsgBeat:
 		case pb.MessageType_MsgPropose:
 		case pb.MessageType_MsgAppend:
@@ -460,6 +474,11 @@ func (r *Raft) Step(m pb.Message) error {
 		//10 basic
 		case pb.MessageType_MsgHup:
 			r.becomeCandidate()
+			if len(r.Prs) == 1 {
+				r.becomeLeader()
+			} else {
+				r.bcastRequestVote()
+			}
 		case pb.MessageType_MsgBeat:
 		case pb.MessageType_MsgPropose:
 		case pb.MessageType_MsgAppend:
@@ -581,7 +600,7 @@ func (r *Raft) handleAppendEntriesResponse(m pb.Message) {
 	//1. 如果收到拒绝消息
 	if m.Reject {
 		index := m.Index
-		r.Prs[m.To].Next = index
+		r.Prs[m.From].Next = index
 		r.sendAppend(m.From)
 		return
 	} else {
@@ -668,22 +687,42 @@ func (r *Raft) handleRequestVote(m pb.Message) {
 		r.sendRequestVoteResponse(m.From, false)
 		return
 	}
-	//2.如果已经给别人投过票，return false
-	if r.Vote != None && r.Vote != m.From {
-		r.sendRequestVoteResponse(m.From, false)
+	//2 如果消息中的任期更大，成为追随者。但不一定投票（还要看Term和Index)
+	if m.Term > r.Term {
+		//3.如果候选者日志没有自己新，(先判断Term再判断Index)，return false
+		lastLogIndex := r.RaftLog.LastIndex()
+		lastLogTerm, _ := r.RaftLog.Term(lastLogIndex)
+		if lastLogTerm < m.LogTerm || lastLogTerm == m.LogTerm && lastLogIndex < m.Index {
+			r.becomeFollower(m.Term, None)
+			r.sendRequestVoteResponse(m.From, false)
+			return
+		}
+		//4.否则，投票给候选者
+		r.becomeFollower(m.Term, m.From)
+		r.Vote = m.From
+		r.sendRequestVoteResponse(m.From, true)
 		return
 	}
-	//3.如果候选者日志没有自己新，(先判断Term再判断Index)，return false
-	lastLogIndex := r.RaftLog.LastIndex()
-	lastLogTerm, _ := r.RaftLog.Term(lastLogIndex)
-	if lastLogTerm < m.LogTerm || lastLogTerm == m.LogTerm && lastLogIndex < m.Index {
-		r.sendRequestVoteResponse(m.From, false)
-		return
+
+	if m.Term == r.Term {
+		//2.如果已经给别人投过票，return false
+		if r.Vote != None && r.Vote != m.From {
+			r.sendRequestVoteResponse(m.From, false)
+			return
+		}
+		//3.如果候选者日志没有自己新，(先判断Term再判断Index)，return false
+		lastLogIndex := r.RaftLog.LastIndex()
+		lastLogTerm, _ := r.RaftLog.Term(lastLogIndex)
+		if lastLogTerm < m.LogTerm || lastLogTerm == m.LogTerm && lastLogIndex < m.Index {
+			r.sendRequestVoteResponse(m.From, false)
+			return
+		}
+
+		//4.否则，投票给候选者
+		r.becomeFollower(m.Term, m.From)
+		r.Vote = m.From
+		r.sendRequestVoteResponse(m.From, true)
 	}
-	//4.否则，投票给候选者
-	r.becomeFollower(m.Term, m.From)
-	r.Vote = m.From
-	r.sendRequestVoteResponse(m.From, true)
 }
 
 //handleHeartbeatResponse by candidate
