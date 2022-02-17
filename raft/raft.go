@@ -138,6 +138,7 @@ type Raft struct {
 	VotedFor              uint64
 	VotedReject           uint64
 	randomElectionTimeout int
+	//
 
 	// heartbeat interval, should send
 	heartbeatTimeout int
@@ -312,6 +313,7 @@ func (r *Raft) sendRequestVoteResponse(to uint64, voteGranted bool) {
 func (r *Raft) resetTimeout() {
 	r.electionElapsed = 0
 	r.heartbeatElapsed = 0
+	//增加随机选举时间
 	r.randomElectionTimeout = r.electionTimeout + rand.Intn(r.electionTimeout)
 }
 
@@ -324,6 +326,7 @@ func (r *Raft) tick() {
 	//2.1 Follower、candidate选举超时，处理：变成候选者，重新选举
 	case StateFollower, StateCandidate:
 		r.electionElapsed++
+		//利用随机选举时间进行判断
 		if r.electionElapsed >= r.randomElectionTimeout {
 			r.resetTimeout()
 			r.Step(pb.Message{MsgType: pb.MessageType_MsgHup})
@@ -365,11 +368,13 @@ func (r *Raft) becomeCandidate() {
 	//自己给自己投票
 	r.Vote = r.id
 	r.votes[r.id] = true
+	r.VotedFor++
 
 	//2.发送选举信息
 	// 2.1 如果peers只有自己，直接当选
 	if len(r.Prs) == 1 {
-		r.Step(pb.Message{MsgType: pb.MessageType_MsgTransferLeader})
+		// r.Step(pb.Message{MsgType: pb.MessageType_MsgTransferLeader})
+		r.becomeLeader()
 	}
 	//2.2 发送选举消息给除自己以外所有的peers
 	lastLogIndex := r.RaftLog.LastIndex()
@@ -471,7 +476,6 @@ func (r *Raft) Step(m pb.Message) error {
 		case pb.MessageType_MsgHeartbeatResponse:
 			//2 extra
 		case pb.MessageType_MsgTransferLeader:
-			r.becomeLeader()
 		case pb.MessageType_MsgTimeoutNow:
 		}
 
@@ -662,16 +666,19 @@ func (r *Raft) handleRequestVote(m pb.Message) {
 	//1.任期是否过期，return false
 	if m.Term < r.Term {
 		r.sendRequestVoteResponse(m.From, false)
+		return
 	}
 	//2.如果已经给别人投过票，return false
 	if r.Vote != None && r.Vote != m.From {
 		r.sendRequestVoteResponse(m.From, false)
+		return
 	}
 	//3.如果候选者日志没有自己新，(先判断Term再判断Index)，return false
 	lastLogIndex := r.RaftLog.LastIndex()
 	lastLogTerm, _ := r.RaftLog.Term(lastLogIndex)
 	if lastLogTerm < m.LogTerm || lastLogTerm == m.LogTerm && lastLogIndex < m.Index {
 		r.sendRequestVoteResponse(m.From, false)
+		return
 	}
 	//4.否则，投票给候选者
 	r.becomeFollower(m.Term, m.From)
@@ -692,7 +699,9 @@ func (r *Raft) handleRequestVoteResponse(m pb.Message) {
 	//超过半数就可以决定是当选还是落选
 	//2. 过半同意，成为领导者
 	if r.VotedFor > uint64(len(r.Prs)/2) {
-		r.Step(pb.Message{MsgType: pb.MessageType_MsgTransferLeader})
+		// r.Step(pb.Message{MsgType: pb.MessageType_MsgTransferLeader})
+		r.becomeLeader()
+		return
 	}
 	//3. 过半反对，退回追随者
 	if r.VotedReject > uint64(len(r.Prs)/2) {

@@ -77,8 +77,13 @@ type RawNode struct {
 // NewRawNode returns a new RawNode given configuration and a list of raft peers.
 func NewRawNode(config *Config) (*RawNode, error) {
 	// Your Code Here (2A).
-	rn := &RawNode{}
-	return nil, nil
+	r := newRaft(config)
+	rn := &RawNode{
+		Raft:         r,
+		preSoftState: r.getSoftState(),
+		preHardState: r.getHardState(),
+	}
+	return rn, nil
 }
 
 // Tick advances the internal logical clock by a single tick.
@@ -160,9 +165,11 @@ func (rn *RawNode) Ready() Ready {
 		Snapshot:         *r.RaftLog.pendingSnapshot,
 	}
 	//2.保存状态
-	if !isHardStateEqual(rn.preHardState, r.getHardState()) {
-		rn.preHardState = hardState
-	}
+	//Q:硬状态在何时保存？
+	//A：在RawNode.Advance中才保存
+	// if !isHardStateEqual(rn.preHardState, r.getHardState()) {
+	// 	rn.preHardState = hardState
+	// }
 	if rn.preSoftState != r.getSoftState() {
 		rn.preSoftState = softState
 	}
@@ -178,10 +185,8 @@ func (rn *RawNode) HasReady() bool {
 	// Your Code Here (2A).
 	r := rn.Raft
 	//1. softState和hardState发生变化
-	if !IsEmptyHardState(r.getHardState()) {
-		if !isHardStateEqual(rn.preHardState, r.getHardState()) {
-			return true
-		}
+	if !IsEmptyHardState(r.getHardState()) && !isHardStateEqual(rn.preHardState, r.getHardState()) {
+		return true
 	}
 	//Q:需要判断软状态么？
 	if rn.preSoftState != r.getSoftState() {
@@ -207,7 +212,21 @@ func (rn *RawNode) HasReady() bool {
 // last Ready results.
 func (rn *RawNode) Advance(rd Ready) {
 	// Your Code Here (2A).
-
+	//1.保存硬状态
+	if !isHardStateEqual(rn.preHardState, rd.HardState) {
+		rn.preHardState = rd.HardState
+	}
+	//2.更新applied记录
+	if len(rd.CommittedEntries) > 0 {
+		newapplied := rd.CommittedEntries[len(rd.CommittedEntries)-1].Index
+		rn.Raft.RaftLog.applied = newapplied
+	}
+	//3. 更新stabled记录
+	if len(rd.Entries) > 0 {
+		newstabled := rd.Entries[len(rd.Entries)-1].Index
+		rn.Raft.RaftLog.stabled = newstabled
+	}
+	rn.Raft.RaftLog.maybeCompact()
 }
 
 // GetProgress return the Progress of this node and its peers, if this

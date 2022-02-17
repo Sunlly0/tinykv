@@ -54,6 +54,7 @@ type RaftLog struct {
 
 	// Your Data Here (2A).
 	//Q:添加该数据结构的必要性在哪？
+	//A:因为快照压缩后，entries[0]的索引不一定是0，所以需要记录起始位置的索引
 	FirstIndex uint64
 }
 
@@ -98,12 +99,19 @@ func (l *RaftLog) maybeCompact() {
 // unstableEntries return all the unstable entries
 func (l *RaftLog) unstableEntries() []pb.Entry {
 	// Your Code Here (2A).
+	if len(l.entries) > 0 {
+		return l.entries[l.stabled-l.FirstIndex+1:]
+	}
 	return nil
 }
 
 // nextEnts returns all the committed but not applied entries
 func (l *RaftLog) nextEnts() (ents []pb.Entry) {
 	// Your Code Here (2A).
+	if len(l.entries) > 0 {
+		//Q:committed切片是否+1？
+		return l.entries[l.applied-l.FirstIndex+1 : l.committed-l.FirstIndex]
+	}
 	return nil
 }
 
