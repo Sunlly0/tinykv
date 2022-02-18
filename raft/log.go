@@ -110,7 +110,8 @@ func (l *RaftLog) nextEnts() (ents []pb.Entry) {
 	// Your Code Here (2A).
 	if len(l.entries) > 0 {
 		//Q:committed切片是否+1？
-		return l.entries[l.applied-l.FirstIndex+1 : l.committed-l.FirstIndex]
+		//A:需要+1
+		return l.entries[l.applied-l.FirstIndex+1 : l.committed-l.FirstIndex+1]
 	}
 	return nil
 }
@@ -118,9 +119,15 @@ func (l *RaftLog) nextEnts() (ents []pb.Entry) {
 // LastIndex return the last index of the log entries
 func (l *RaftLog) LastIndex() uint64 {
 	// Your Code Here (2A).
+	//1.如果有entries
 	if len(l.entries) > 0 {
 		return l.entries[len(l.entries)-1].Index
 	}
+	//2.如果没有entries
+	// i, _ := l.storage.LastIndex()
+	// if i > 0 {
+	// 	return i
+	// }
 	return 0
 }
 
@@ -130,8 +137,12 @@ func (l *RaftLog) Term(i uint64) (uint64, error) {
 	if i > l.LastIndex() {
 		return 0, ErrUnavailable
 	}
-	if len(l.entries) > 0 {
-		return l.entries[len(l.entries)-1].Term, nil
+	//考虑FirstIndex
+	// if i < l.FirstIndex {
+	// 	return 0, ErrCompacted
+	// }
+	if len(l.entries) > 0 && i >= l.FirstIndex {
+		return l.entries[i-l.FirstIndex].Term, nil
 	}
 	return 0, nil
 }
@@ -139,7 +150,7 @@ func (l *RaftLog) Term(i uint64) (uint64, error) {
 //extra funcs by Sunlly
 func (l *RaftLog) Slice(begin uint64, end uint64) []*pb.Entry {
 	var slice []*pb.Entry
-	for i := begin; i < end; i++ {
+	for i := begin - l.FirstIndex; i <= end-l.FirstIndex; i++ {
 		entry := l.entries[i]
 		slice = append(slice, &entry)
 	}
@@ -171,9 +182,27 @@ func (l *RaftLog) appendConflict(entries []*pb.Entry) (bool, uint64) {
 //删除冲突的日志：从index开始往后的都删除
 func (l *RaftLog) deleteConflictEntries(index uint64) {
 	l.entries = l.entries[:index-1]
+	//注：需要更新stabled状态，新增的日志都是不稳定的了
+	l.stabled = min(index-1, l.stabled)
 }
 
-//添加新日志条目
+//删除不冲突情况下，和自己已有日志重复的新日志，返回删除后的日志
+func (l *RaftLog) deleteRepeatEntries(entries []*pb.Entry) (bool, []*pb.Entry) {
+	//1.如果新来的日志的第一个的Index就比自己大，则没有重复的日志
+	if entries[0].Index > l.LastIndex() {
+		return false, entries
+	}
+	//2.否则有重复日志。删除日志中所有小于等于lastIndex的日志，并返回
+	for i, entry := range entries {
+		if entry.Index > l.LastIndex() {
+			return true, entries[i:]
+		}
+	}
+	//3.如果所有日志都重复，则全部删除，返回空
+	return true, make([]*pb.Entry, 0)
+}
+
+//添加新日志条目，默认日志中已经有Term和Index等信息
 func (l *RaftLog) apppendNewEntries(entries []*pb.Entry) {
 	for _, entry := range entries {
 		l.entries = append(l.entries, *entry)
