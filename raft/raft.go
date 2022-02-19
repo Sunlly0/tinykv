@@ -214,11 +214,12 @@ func (r *Raft) getSoftState() *SoftState {
 }
 
 func (r *Raft) getHardState() pb.HardState {
-	return pb.HardState{
+	hardState := pb.HardState{
 		Term:   r.Term,
 		Vote:   r.Vote,
 		Commit: r.RaftLog.committed,
 	}
+	return hardState
 }
 
 // sendAppend sends an append RPC with new entries (if any) and the
@@ -261,12 +262,16 @@ func (r *Raft) sendAppend(to uint64) bool {
 
 func (r *Raft) sendAppendResponse(to uint64, success bool) {
 	// Your Code Here (2A).
+	lastLogIndex := r.RaftLog.LastIndex()
+	lastLogTerm, _ := r.RaftLog.Term(lastLogIndex)
 	msg := pb.Message{
 		MsgType: pb.MessageType_MsgAppendResponse,
 		To:      to,
 		From:    r.id,
 		Term:    r.Term,
 		Reject:  !success,
+		LogTerm: lastLogTerm,
+		Index:   lastLogIndex,
 	}
 	r.msgs = append(r.msgs, msg)
 }
@@ -572,6 +577,9 @@ func (r *Raft) handleAppendEntries(m pb.Message) {
 		// r.sendAppendResponse(m.From, true)
 		// return
 	}
+	if m.Term == r.Term && r.Lead == None {
+		r.becomeFollower(m.Term, m.From)
+	}
 
 	//3.如果接收者没有能匹配上的leader的日志条目,即prevLogIndex和prevLogTerm的索引任期一样的条目
 	//m.Index即prevLogIndex,m.LogTerm即prevLogTerm
@@ -622,8 +630,10 @@ func (r *Raft) handleAppendEntriesResponse(m pb.Message) {
 	}
 	//1. 如果收到拒绝消息
 	if m.Reject {
-		index := m.Index
-		r.Prs[m.From].Next = index
+		//Next-1,重试
+		// index := m.Index
+		r.Prs[m.From].Next--
+		// r.Prs[m.From].Next = index
 		r.sendAppend(m.From)
 		return
 	} else {
@@ -654,7 +664,7 @@ func (r *Raft) updateCommit() {
 	}
 	sort.Sort(match)
 	//2. 找排序后的中位数
-	mid := match[len(match)/2]
+	mid := match[(len(match)-1)/2]
 	//3.如果中位数大于committed，更新领导者的committed值
 	if mid > r.RaftLog.committed {
 		logTerm, _ := r.RaftLog.Term(mid)
@@ -721,7 +731,9 @@ func (r *Raft) handleRequestVote(m pb.Message) {
 			return
 		}
 		//4.否则，投票给候选者
-		r.becomeFollower(m.Term, m.From)
+		//Q: 按照测试的逻辑，此处应该暂时不设候选者为领导者，为什么？
+		// r.becomeFollower(m.Term, m.From)
+		r.becomeFollower(m.Term, None)
 		r.Vote = m.From
 		r.sendRequestVoteResponse(m.From, true)
 		return
@@ -742,7 +754,8 @@ func (r *Raft) handleRequestVote(m pb.Message) {
 		}
 
 		//4.否则，投票给候选者
-		r.becomeFollower(m.Term, m.From)
+		r.becomeFollower(m.Term, None)
+		// r.becomeFollower(m.Term, m.From)
 		r.Vote = m.From
 		r.sendRequestVoteResponse(m.From, true)
 	}

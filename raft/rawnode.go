@@ -33,6 +33,10 @@ type SoftState struct {
 	RaftState StateType
 }
 
+func (st *SoftState) equal(softState *SoftState) bool {
+	return st.Lead == softState.Lead && st.RaftState == softState.RaftState
+}
+
 // Ready encapsulates the entries and messages that are ready to read,
 // be saved to stable storage, committed or sent to other peers.
 // All fields in Ready are read-only.
@@ -160,18 +164,22 @@ func (rn *RawNode) Ready() Ready {
 		Entries:          r.RaftLog.unstableEntries(),
 		CommittedEntries: r.RaftLog.nextEnts(),
 		Messages:         r.msgs,
-		HardState:        hardState,
-		SoftState:        softState,
-		Snapshot:         *r.RaftLog.pendingSnapshot,
+		// HardState:        hardState,
+		// SoftState:        softState,
+		// Snapshot:         *r.RaftLog.pendingSnapshot,
 	}
 	//2.保存状态
 	//Q:硬状态在何时保存？
 	//A：在RawNode.Advance中才保存
-	// if !isHardStateEqual(rn.preHardState, r.getHardState()) {
-	// 	rn.preHardState = hardState
-	// }
-	if rn.preSoftState != r.getSoftState() {
+
+	//注：只有当softState和hardState都更新，才会附入rd中，
+	//否则rd的HardState和SoftState保持默认值
+	if !isHardStateEqual(rn.preHardState, r.getHardState()) {
+		rd.HardState = hardState
+	}
+	if !rn.preSoftState.equal(r.getSoftState()) {
 		rn.preSoftState = softState
+		rd.SoftState = softState
 	}
 	//3.清空消息和快照
 	r.msgs = make([]pb.Message, 0)
@@ -188,10 +196,11 @@ func (rn *RawNode) HasReady() bool {
 	if !IsEmptyHardState(r.getHardState()) && !isHardStateEqual(rn.preHardState, r.getHardState()) {
 		return true
 	}
+
 	//Q:需要判断软状态么？
-	if rn.preSoftState != r.getSoftState() {
-		return true
-	}
+	// if rn.preSoftState.equal(r.getSoftState()) {
+	// 	return true
+	// }
 
 	//2.unstable entries和uncommit entries存在
 	if len(r.RaftLog.unstableEntries()) > 0 || len(r.RaftLog.nextEnts()) > 0 {
@@ -213,7 +222,7 @@ func (rn *RawNode) HasReady() bool {
 func (rn *RawNode) Advance(rd Ready) {
 	// Your Code Here (2A).
 	//1.保存硬状态
-	if !isHardStateEqual(rn.preHardState, rd.HardState) {
+	if !IsEmptyHardState(rd.HardState) {
 		rn.preHardState = rd.HardState
 	}
 	//2.更新applied记录
