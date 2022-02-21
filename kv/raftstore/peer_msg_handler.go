@@ -120,8 +120,43 @@ func (d *peerMsgHandler) proposeRaftCommand(msg *raft_cmdpb.RaftCmdRequest, cb *
 		return
 	}
 	// Your Code Here (2B).
-	//TODO:
+	// 对Admin和一般request分别做处理
+	if msg.AdminRequest != nil {
+		// d.proposeAdminRequest(msg,cb)
+	} else {
+		d.proposeRequest(msg, cb)
+	}
+}
 
+//extract key from req by Sunlly
+func (d *peerMsgHandler) GetRequestKey(req *raft_cmdpb.Request) []byte {
+	var key []byte
+	switch req.CmdType {
+	case raft_cmdpb.CmdType_Get:
+		key = req.Get.Key
+	case raft_cmdpb.CmdType_Put:
+		key = req.Put.Key
+	case raft_cmdpb.CmdType_Delete:
+		key = req.Delete.Key
+	case raft_cmdpb.CmdType_Snap:
+	}
+	return key
+}
+
+//a switch of proposeRaftCommand by Sunlly
+func (d *peerMsgHandler) proposeRequest(msg *raft_cmdpb.RaftCmdRequest, cb *message.Callback) {
+	//1.提取Request中的key
+	req := msg.Requests[0]
+	key := d.GetRequestKey(req)
+	if key != nil {
+		//判断是否在region中
+		err := util.CheckKeyInRegion(key, d.Region())
+		if err != nil {
+			d.handle
+		}
+	}
+
+	return nil, nil
 }
 
 func (d *peerMsgHandler) onTick() {
