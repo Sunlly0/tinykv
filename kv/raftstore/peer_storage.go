@@ -308,6 +308,33 @@ func ClearMeta(engines *engine_util.Engines, kvWB, raftWB *engine_util.WriteBatc
 // never be committed
 func (ps *PeerStorage) Append(entries []eraftpb.Entry, raftWB *engine_util.WriteBatch) error {
 	// Your Code Here (2B).
+	if len(entries) == 0 {
+		return nil
+	}
+	entFirstIndex := entries[0].Index
+	entLastIndex := entries[len(entries)-1].Index
+	//Q:wbFirstIndex是否可以理解为applied后commit前的第一个日志？
+	wbFirstIndex, _ := ps.FirstIndex()
+	//被持久化的最后一个日志
+	wbLastIndex, _ := ps.LastIndex()
+	//1.如果entLast比wbFirst小，说明ent是过时的数据，不作处理
+	if entLastIndex < wbFirstIndex {
+		return nil
+	}
+	//2.否则，对wbFirstIndex以前的日志，做截断（因为已经被应用？）
+	if entFirstIndex < wbFirstIndex {
+		entries = entries[wbFirstIndex-entFirstIndex:]
+	}
+	//3.添加到raftlog中（重复的自动覆盖）
+	for _, entry := range entries {
+		raftWB.SetMeta(meta.RaftLogKey(ps.region.Id, entry.Index), &entry)
+	}
+	//4.删除不会被提交的数据（超过entLastIndex的ps中日志，是上一任领导人未提交的日志，也不会再提交）
+	if entLastIndex < wbLastIndex {
+		for i := entLastIndex + 1; i < wbLastIndex; i++ {
+			raftWB.DeleteMeta(meta.RaftLogKey(ps.region.Id, i))
+		}
+	}
 	return nil
 }
 
@@ -332,7 +359,28 @@ func (ps *PeerStorage) SaveReadyState(ready *raft.Ready) (*ApplySnapResult, erro
 	// Hint: you may call `Append()` and `ApplySnapshot()` in this function
 	// Your Code Here (2B/2C).
 	//持久化Ready中的数据
-	return nil, nil
+	var result *ApplySnapResult
+	var err error
+	//2C 快照处理
+	//1.持久化日志
+	raftWB := new(engine_util.WriteBatch)
+	ps.Append(ready.Entries, raftWB)
+	//2.持久化RaftLocalState(HardState，LastLogIndex)
+	if len(ready.Entries) > 0 {
+		LastIndex := ready.Entries[len(ready.Entries)-1].Index
+		if LastIndex > ps.raftState.LastIndex {
+			ps.raftState.LastIndex = LastIndex
+			ps.raftState.LastTerm = ready.Entries[len(ready.Entries)-1].Term
+		}
+	}
+	//3.持久化HardState
+	if !raft.IsEmptyHardState(ready.HardState) {
+		ps.raftState.HardState = &ready.HardState
+	}
+	//4.存储至raftdv
+	err = raftWB.SetMeta(meta.RaftStateKey(ps.region.Id), ps.raftState)
+	err = raftWB.WriteToDB(ps.Engines.Raft)
+	return result, err
 }
 
 func (ps *PeerStorage) ClearData() {
