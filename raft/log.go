@@ -124,10 +124,12 @@ func (l *RaftLog) LastIndex() uint64 {
 		return l.entries[len(l.entries)-1].Index
 	}
 	//2.如果没有entries
-	// i, _ := l.storage.LastIndex()
-	// if i > 0 {
-	// 	return i
-	// }
+	if len(l.entries) == 0 {
+		index, _ := l.storage.LastIndex()
+		if index > 0 {
+			return index
+		}
+	}
 	return 0
 }
 

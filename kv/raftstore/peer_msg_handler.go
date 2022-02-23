@@ -106,6 +106,7 @@ func (d *peerMsgHandler) processRequest(entry *eraftpb.Entry, msg *raft_cmdpb.Ra
 		}
 	}
 	// apply to kv (Put/Delete)
+	// 每个客户端都需要处理
 	switch req.CmdType {
 	case raft_cmdpb.CmdType_Get:
 	case raft_cmdpb.CmdType_Put:
@@ -115,6 +116,7 @@ func (d *peerMsgHandler) processRequest(entry *eraftpb.Entry, msg *raft_cmdpb.Ra
 	case raft_cmdpb.CmdType_Snap:
 	}
 	//callback after applying (Get/Snap)
+	//只用一个客户端（接收到proposal的）处理并返回就可以了
 	//回复消息
 	d.handleProposal(entry, func(p *proposal) {
 		resp := &raft_cmdpb.RaftCmdResponse{Header: &raft_cmdpb.RaftResponseHeader{}}
@@ -144,6 +146,7 @@ func (d *peerMsgHandler) processRequest(entry *eraftpb.Entry, msg *raft_cmdpb.Ra
 				Snap: &raft_cmdpb.SnapResponse{Region: d.Region()}}}
 			p.cb.Txn = d.peerStorage.Engines.Kv.NewTransaction(false)
 		}
+		log.Infof("***---processRequest: %d, index: %d, resp:%s", d.RaftGroup.GetRaftId(), entry.Index, resp)
 		p.cb.Done(resp)
 	})
 	// noop entry
@@ -157,9 +160,10 @@ func (d *peerMsgHandler) HandleRaftReady() {
 	}
 	// Your Code Here (2B).
 	//1.判断是否有新的Ready，如果没有则不用处理,如果有则生成Ready
-	if d.RaftGroup.HasReady() {
+	if !d.RaftGroup.HasReady() {
 		return
 	}
+	// log.Infof("--- handleRaftReady %d ", d.RaftGroup.GetRaftId())
 	rd := d.RaftGroup.Ready()
 	//2.将Ready持久化到badger.(保存Raftdb的信息)，必须持久化之后才处理Ready
 	result, err := d.peerStorage.SaveReadyState(&rd)
@@ -183,9 +187,11 @@ func (d *peerMsgHandler) HandleRaftReady() {
 	}
 	//4.应用ready.CommittedEntries中的entry（kvdb）
 	if len(rd.CommittedEntries) > 0 {
+		// log.Infof("***---process committedEntries: %d, len:%d", d.RaftGroup.GetRaftId(), len(rd.CommittedEntries))
 		//遍历ready.CommittedEntries，逐条应用于kvdb
 		// oldProposals := d.proposals
 		for _, entry := range rd.CommittedEntries {
+			// log.Infof("***----process committed: %d, index:%d", d.RaftGroup.GetRaftId(), entry.Index)
 			//4.1为写入磁盘，定义WriteBatch
 			kvWB := new(engine_util.WriteBatch)
 			//4.2 执行命令，4.3回复消息
@@ -310,6 +316,7 @@ func (d *peerMsgHandler) proposeRequest(msg *raft_cmdpb.RaftCmdRequest, cb *mess
 	p := &proposal{index: d.nextProposalIndex(), term: d.Term(), cb: cb}
 	d.proposals = append(d.proposals, p)
 	//4.调用Propose函数处理消息（MsgType_MsgPropose）
+	log.Infof("**--- proposeRequest %d, req:%s ", d.RaftGroup.GetRaftId(), req.String())
 	d.RaftGroup.Propose(data)
 }
 

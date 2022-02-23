@@ -17,6 +17,7 @@ package raft
 import (
 	"errors"
 
+	"github.com/pingcap-incubator/tinykv/log"
 	pb "github.com/pingcap-incubator/tinykv/proto/pkg/eraftpb"
 )
 
@@ -78,6 +79,10 @@ type RawNode struct {
 	preHardState pb.HardState
 }
 
+func (rn *RawNode) GetRaftId() uint64 {
+	return rn.Raft.id
+}
+
 // NewRawNode returns a new RawNode given configuration and a list of raft peers.
 func NewRawNode(config *Config) (*RawNode, error) {
 	// Your Code Here (2A).
@@ -104,6 +109,7 @@ func (rn *RawNode) Campaign() error {
 
 // Propose proposes data be appended to the raft log.
 func (rn *RawNode) Propose(data []byte) error {
+	log.Infof("*-- Propose: %d ", rn.GetRaftId())
 	ent := pb.Entry{Data: data}
 	return rn.Raft.Step(pb.Message{
 		MsgType: pb.MessageType_MsgPropose,
@@ -194,6 +200,7 @@ func (rn *RawNode) HasReady() bool {
 	r := rn.Raft
 	//1. softState和hardState发生变化
 	if !IsEmptyHardState(r.getHardState()) && !isHardStateEqual(rn.preHardState, r.getHardState()) {
+		// log.Infof("--- hasReady: %d hardState changed", rn.GetRaftId())
 		return true
 	}
 
@@ -204,10 +211,12 @@ func (rn *RawNode) HasReady() bool {
 
 	//2.unstable entries和uncommit entries存在
 	if len(r.RaftLog.unstableEntries()) > 0 || len(r.RaftLog.nextEnts()) > 0 {
+		// log.Infof("--- hasReady: %d has entries to stable or apply commit!", rn.GetRaftId())
 		return true
 	}
 	//3.有msgs需要发送
 	if len(r.msgs) > 0 {
+		// log.Infof("--- hasReady: %d has msgs to send", rn.GetRaftId())
 		return true
 	}
 	//4.快照不为空
