@@ -323,6 +323,7 @@ func (ps *PeerStorage) Append(entries []eraftpb.Entry, raftWB *engine_util.Write
 	}
 	//2.否则，对wbFirstIndex以前的日志，做截断（因为已经被应用？）
 	if entFirstIndex < wbFirstIndex {
+		//Q:数组越界？
 		entries = entries[wbFirstIndex-entFirstIndex:]
 	}
 	//3.添加到raftlog中（重复的自动覆盖）
@@ -331,7 +332,7 @@ func (ps *PeerStorage) Append(entries []eraftpb.Entry, raftWB *engine_util.Write
 	}
 	//4.删除不会被提交的数据（超过entLastIndex的ps中日志，是上一任领导人未提交的日志，也不会再提交）
 	if entLastIndex < wbLastIndex {
-		for i := entLastIndex + 1; i < wbLastIndex; i++ {
+		for i := entLastIndex + 1; i <= wbLastIndex; i++ {
 			raftWB.DeleteMeta(meta.RaftLogKey(ps.region.Id, i))
 		}
 	}

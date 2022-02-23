@@ -58,19 +58,55 @@ func (d *peerMsgHandler) getRequestKey(req *raft_cmdpb.Request) []byte {
 
 //by Sunlly
 func (d *peerMsgHandler) handleProposal(entry *eraftpb.Entry, handle func(*proposal)) {
-	if len(d.proposals) > 0 {
-		p := d.proposals[0]
-		if p.index == entry.Index {
-			if p.term != entry.Term {
-				NotifyStaleReq(entry.Term, p.cb)
-			} else {
-				handle(p)
-			}
-		}
-		if p.index > entry.Index {
+	// if len(d.proposals) > 0 {
+	// 	p := d.proposals[0]
+	// 	if p.index == entry.Index {
+	// 		if p.term != entry.Term {
+	// 			NotifyStaleReq(entry.Term, p.cb)
+	// 		} else {
+	// 			handle(p)
+	// 		}
+	// 	}
+	// 	if p.index > entry.Index {
+	// 		return
+	// 	}
+	// 	if entry.Term == p.term && entry.Index > p.index {
+	// 		NotifyStaleReq(p.term, p.cb)
+	// 	}
+	// 	d.proposals = d.proposals[1:]
+	// }
+	for len(d.proposals) > 0 {
+		proposal := d.proposals[0]
+		//1.过期的entry，已经被其他执行了
+		if entry.Term < proposal.term {
 			return
 		}
-		d.proposals = d.proposals[1:]
+		//2.更高任期的entry, 本条proposal作废
+		if entry.Term > proposal.term {
+			proposal.cb.Done(ErrRespStaleCommand(proposal.term))
+			d.proposals = d.proposals[1:]
+			continue
+		}
+		//3.entry的index小，不回复
+		if entry.Term == proposal.term && entry.Index < proposal.index {
+			return
+		}
+		//4.entry的index大，回复发送至错误的领导人
+		if entry.Term == proposal.term && entry.Index > proposal.index {
+			proposal.cb.Done(ErrRespStaleCommand(proposal.term))
+			d.proposals = d.proposals[1:]
+			continue
+		}
+		//5.entry的index等于proposal.index
+		if entry.Index == proposal.index && entry.Term == proposal.term {
+			handle(proposal)
+			d.proposals = d.proposals[1:]
+			// if response.Header == nil {
+			// 	response.Header = &raft_cmdpb.RaftResponseHeader{}
+			// }
+			// // proposal.cb.Txn = txn
+			// proposal.cb.Done(response)
+		}
 	}
 }
 
@@ -146,7 +182,7 @@ func (d *peerMsgHandler) processRequest(entry *eraftpb.Entry, msg *raft_cmdpb.Ra
 				Snap: &raft_cmdpb.SnapResponse{Region: d.Region()}}}
 			p.cb.Txn = d.peerStorage.Engines.Kv.NewTransaction(false)
 		}
-		log.Infof("***---processRequest: %d, index: %d, resp:%s", d.RaftGroup.GetRaftId(), entry.Index, resp)
+		log.Infof("***---processRequestResp: %d, index: %d, resp:%s", d.RaftGroup.GetRaftId(), entry.Index, resp)
 		p.cb.Done(resp)
 	})
 	// noop entry
@@ -191,7 +227,7 @@ func (d *peerMsgHandler) HandleRaftReady() {
 		//遍历ready.CommittedEntries，逐条应用于kvdb
 		// oldProposals := d.proposals
 		for _, entry := range rd.CommittedEntries {
-			// log.Infof("***----process committed: %d, index:%d", d.RaftGroup.GetRaftId(), entry.Index)
+			log.Infof("***----process committed: %d, index:%d", d.RaftGroup.GetRaftId(), entry.Index)
 			//4.1为写入磁盘，定义WriteBatch
 			kvWB := new(engine_util.WriteBatch)
 			//4.2 执行命令，4.3回复消息

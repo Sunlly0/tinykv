@@ -363,7 +363,7 @@ func (r *Raft) tick() {
 		//利用随机选举时间进行判断
 		if r.electionElapsed >= r.randomElectionTimeout {
 			r.resetTimeout()
-			// log.Infof("---+ tick: %d Timeout ", r.id)
+			log.Infof("---+ tick: %d Timeout ", r.id)
 			r.Step(pb.Message{MsgType: pb.MessageType_MsgHup})
 		}
 		//2.2 Leader心跳超时，处理：更新心跳并bcast心跳给所有追随者
@@ -406,7 +406,7 @@ func (r *Raft) becomeCandidate() {
 	r.votes[r.id] = true
 	r.VotedFor++
 
-	// log.Infof("++ %d becomeCadidate", r.id)
+	log.Infof("++ %d becomeCadidate", r.id)
 	//根据测试逻辑，becomeCandidate中只做状态修改，不发送选举消息
 }
 
@@ -427,7 +427,7 @@ func (r *Raft) bcastRequestVote() {
 func (r *Raft) becomeLeader() {
 	// Your Code Here (2A).
 	// NOTE: Leader should propose a noop entry on its term
-	log.Infof("+++ %d becomLeader", r.id)
+	log.Infof("+++ %d becomeLeader", r.id)
 	//1. 状态转换
 	if r.State != StateLeader {
 		r.resetTimeout()
@@ -800,6 +800,7 @@ func (r *Raft) handleRequestVoteResponse(m pb.Message) {
 	}
 }
 
+// leader handlePropose by Sunlly
 func (r *Raft) appendEntries(entries []*pb.Entry) {
 	ent := make([]*pb.Entry, 0)
 	//1.完善entry的信息
@@ -808,9 +809,11 @@ func (r *Raft) appendEntries(entries []*pb.Entry) {
 		entry.Term = r.Term
 		entry.Index = lastIndex + uint64(i) + 1
 		ent = append(ent, entry)
+		log.Infof("*-- Propose appendEntries: %d, index: %d ,State:", r.id, entry.Index, r.State)
 	}
 	//2.添加entry到日志条目
 	if len(ent) > 0 {
+
 		r.RaftLog.apppendNewEntries(ent)
 	}
 	//3.更新Prs
