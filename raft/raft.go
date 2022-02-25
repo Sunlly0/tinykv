@@ -176,6 +176,7 @@ func newRaft(c *Config) *Raft {
 	}
 	// Your Code Here (2A).
 	//return Raft
+	log.Infof("newRaft:%d", c.ID)
 	r := &Raft{
 		id:               c.ID,
 		RaftLog:          newLog(c.Storage),
@@ -433,7 +434,7 @@ func (r *Raft) bcastRequestVote() {
 func (r *Raft) becomeLeader() {
 	// Your Code Here (2A).
 	// NOTE: Leader should propose a noop entry on its term
-	// log.Infof("+++ %d becomeLeader", r.id)
+	log.Infof("+++ %d becomeLeader", r.id)
 	//1. 状态转换
 	if r.State != StateLeader {
 		r.resetTimeout()

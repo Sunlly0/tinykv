@@ -98,6 +98,7 @@ func (ps *PeerStorage) Entries(low, high uint64) ([]eraftpb.Entry, error) {
 	endKey := meta.RaftLogKey(ps.region.Id, high)
 	iter := txn.NewIterator(badger.DefaultIteratorOptions)
 	defer iter.Close()
+	i := 0
 	for iter.Seek(startKey); iter.Valid(); iter.Next() {
 		item := iter.Item()
 		if bytes.Compare(item.Key(), endKey) >= 0 {
@@ -116,8 +117,11 @@ func (ps *PeerStorage) Entries(low, high uint64) ([]eraftpb.Entry, error) {
 			break
 		}
 		nextIndex++
+		log.Infof("ps.Entries:%d,entnum:%d,index:%d", ps.region.Id, i, entry.Index)
+		i++
 		buf = append(buf, entry)
 	}
+	log.Infof("ps.Entries:%d,low:%d,high:%d,buflen:%d", ps.region.Id, low, high, len(buf))
 	// If we get the correct number of entries, returns.
 	if len(buf) == int(high-low) {
 		return buf, nil
