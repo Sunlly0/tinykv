@@ -67,6 +67,7 @@ func newLog(storage Storage) *RaftLog {
 	//lo，即storage.FirstIndex
 	lo, _ := storage.FirstIndex()
 	hi, _ := storage.LastIndex()
+
 	//if err !=nil{
 	// 	panic(err)
 	// }
@@ -74,6 +75,7 @@ func newLog(storage Storage) *RaftLog {
 	if err != nil {
 		log.Panic(err)
 	}
+
 	//A:关于此处为何这样初始化，参考RaftLog的结构
 	//  snapshot/first.....applied....committed....stabled.....last
 	//  --------|------------------------------------------------|
@@ -100,6 +102,17 @@ func (l *RaftLog) maybeCompact() {
 func (l *RaftLog) unstableEntries() []pb.Entry {
 	// Your Code Here (2A).
 	if len(l.entries) > 0 {
+		// log.Infof("unstableEnt: stabled:%d, last:%d", l.stabled, l.LastIndex())
+		// for _, entry := range l.entries {
+		// 	if entry.Index == 0 {
+		// 		log.Infof("!!!unstableEnt index==0: stabled:%d, last:%d", l.stabled, l.LastIndex())
+		// 		log.Infof("len:%d", len(l.entries))
+		// 		for i, ent := range l.entries {
+		// 			log.Infof("index==0: entunm: %d, index:%d", i, ent.Index)
+		// 		}
+		// 		panic("unstableEnts: entry Index == 0")
+		// 	}
+		// }
 		return l.entries[l.stabled-l.FirstIndex+1:]
 	}
 	return nil
@@ -109,6 +122,12 @@ func (l *RaftLog) unstableEntries() []pb.Entry {
 func (l *RaftLog) nextEnts() (ents []pb.Entry) {
 	// Your Code Here (2A).
 	if len(l.entries) > 0 {
+		// log.Infof("nextEnts: applied:%d, commit:%d, stabled:%d,last:%d FirstIndex:%d", l.applied, l.committed, l.stabled, l.LastIndex(), l.FirstIndex)
+		// for _, entry := range l.entries {
+		// 	if entry.Index == 0 {
+		// 		panic("append: entry Index == 0")
+		// 	}
+		// }
 		//Q:committed切片是否+1？
 		//A:需要+1
 		return l.entries[l.applied-l.FirstIndex+1 : l.committed-l.FirstIndex+1]
@@ -121,12 +140,14 @@ func (l *RaftLog) LastIndex() uint64 {
 	// Your Code Here (2A).
 	//1.如果有entries
 	if len(l.entries) > 0 {
+		// log.Infof("LastIndex: len:%d,last:%d", len(l.entries), l.entries[len(l.entries)-1].Index)
 		return l.entries[len(l.entries)-1].Index
 	}
 	//2.如果没有entries
 	if len(l.entries) == 0 {
 		index, _ := l.storage.LastIndex()
 		if index > 0 {
+
 			return index
 		}
 	}
@@ -143,10 +164,23 @@ func (l *RaftLog) Term(i uint64) (uint64, error) {
 	// if i < l.FirstIndex {
 	// 	return 0, ErrCompacted
 	// }
+	// in entries
 	if len(l.entries) > 0 && i >= l.FirstIndex {
+		// log.Infof("Term: firstindex:%d,last:%d ,index:%d, len:%d", l.FirstIndex, l.LastIndex(), i, len(l.entries))
+		// for i, entry := range l.entries {
+		// 	log.Infof("Term:entnum:%d,index:%d", i, entry.Index)
+		// }
 		return l.entries[i-l.FirstIndex].Term, nil
 	}
-	return 0, nil
+	// not in entries
+	term, err := l.storage.Term(i)
+	if err == nil {
+		return term, nil
+	}
+	if err == ErrCompacted || err == ErrUnavailable {
+		return 0, err
+	}
+	panic(err)
 }
 
 //extra funcs by Sunlly
@@ -156,6 +190,11 @@ func (l *RaftLog) Slice(begin uint64, end uint64) []*pb.Entry {
 		entry := l.entries[i]
 		slice = append(slice, &entry)
 	}
+	// for _, entry := range slice {
+	// 	if entry.Index == 0 {
+	// 		panic("Slice: entry Index == 0")
+	// 	}
+	// }
 	return slice
 }
 
@@ -178,18 +217,29 @@ func (l *RaftLog) appendConflict(entries []*pb.Entry) (bool, uint64) {
 			}
 		}
 	}
+
 	return false, index
 }
 
 //删除冲突的日志：从index开始往后的都删除
 func (l *RaftLog) deleteConflictEntries(index uint64) {
-	l.entries = l.entries[:index-1]
+	// for _, entry := range l.entries {
+	// // 	if entry.Index == 0 {
+	// // 		panic("1.1 deleteConflictEntries: entry Index == 0")
+	// // 	}
+	// // }
+	// l.entries = l.entries[:index-1]
+	l.entries = l.entries[0 : index-l.FirstIndex]
 	//注：需要更新stabled状态，新增的日志都是不稳定的了
 	l.stabled = min(index-1, l.stabled)
 }
 
 //删除不冲突情况下，和自己已有日志重复的新日志，返回删除后的日志
 func (l *RaftLog) deleteRepeatEntries(entries []*pb.Entry) (bool, []*pb.Entry) {
+	//0.如果没有日志，则不作处理
+	if len(l.entries) == 0 {
+		return false, entries
+	}
 	//1.如果新来的日志的第一个的Index就比自己大，则没有重复的日志
 	if entries[0].Index > l.LastIndex() {
 		return false, entries

@@ -182,7 +182,7 @@ func (d *peerMsgHandler) processRequest(entry *eraftpb.Entry, msg *raft_cmdpb.Ra
 				Snap: &raft_cmdpb.SnapResponse{Region: d.Region()}}}
 			p.cb.Txn = d.peerStorage.Engines.Kv.NewTransaction(false)
 		}
-		log.Infof("***---processRequestResp: %d, index: %d, resp:%s", d.RaftGroup.GetRaftId(), entry.Index, resp)
+		// log.Infof("***---processRequestResp: %d, index: %d, resp:%s", d.RaftGroup.GetRaftId(), entry.Index, resp)
 		p.cb.Done(resp)
 	})
 	// noop entry
@@ -227,7 +227,7 @@ func (d *peerMsgHandler) HandleRaftReady() {
 		//遍历ready.CommittedEntries，逐条应用于kvdb
 		// oldProposals := d.proposals
 		for _, entry := range rd.CommittedEntries {
-			log.Infof("***----process committed: %d, index:%d", d.RaftGroup.GetRaftId(), entry.Index)
+			// log.Infof("***----process committed: %d, index:%d", d.RaftGroup.GetRaftId(), entry.Index)
 			//4.1为写入磁盘，定义WriteBatch
 			kvWB := new(engine_util.WriteBatch)
 			//4.2 执行命令，4.3回复消息
@@ -352,7 +352,7 @@ func (d *peerMsgHandler) proposeRequest(msg *raft_cmdpb.RaftCmdRequest, cb *mess
 	p := &proposal{index: d.nextProposalIndex(), term: d.Term(), cb: cb}
 	d.proposals = append(d.proposals, p)
 	//4.调用Propose函数处理消息（MsgType_MsgPropose）
-	log.Infof("**--- proposeRequest %d, req:%s ", d.RaftGroup.GetRaftId(), req.String())
+	// log.Infof("**--- proposeRequest %d, req:%s ", d.RaftGroup.GetRaftId(), req.String())
 	d.RaftGroup.Propose(data)
 }
 

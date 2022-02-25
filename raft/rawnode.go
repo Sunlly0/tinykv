@@ -236,12 +236,15 @@ func (rn *RawNode) Advance(rd Ready) {
 	if len(rd.CommittedEntries) > 0 {
 		newapplied := rd.CommittedEntries[len(rd.CommittedEntries)-1].Index
 		rn.Raft.RaftLog.applied = newapplied
+		// log.Infof("**----advance: %d, newapplied:%d", rn.GetRaftId(), newapplied)
 	}
 	//3. 更新stabled记录
 	if len(rd.Entries) > 0 {
 		newstabled := rd.Entries[len(rd.Entries)-1].Index
 		rn.Raft.RaftLog.stabled = newstabled
+		// log.Infof("**----advance: %d, newstabled:%d", rn.GetRaftId(), newstabled)
 	}
+
 	rn.Raft.RaftLog.maybeCompact()
 }
 

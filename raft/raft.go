@@ -184,16 +184,24 @@ func newRaft(c *Config) *Raft {
 		heartbeatTimeout: c.HeartbeatTick,
 		electionTimeout:  c.ElectionTick,
 	}
-	lastLogIndex := r.RaftLog.LastIndex()
 
 	// log.Infof("NewRaft: %d", r.id)
 
 	//提取Storage中的硬状态,否则测试不能通过
 	hardState, confStat, _ := c.Storage.InitialState()
+	//恢复Commit
+	r.RaftLog.committed = hardState.Commit
+	//恢复ApplyState
+	if c.Applied > 0 {
+		r.RaftLog.applied = c.Applied
+	}
+
 	if c.peers == nil {
 		c.peers = confStat.Nodes
 	}
 
+	lastLogIndex := r.RaftLog.LastIndex()
+	log.Infof("++----newRaftLog: %d, len:%d, lastLogIndex:%d, committed:%d, applied:%d", r.id, len(r.RaftLog.entries), lastLogIndex, r.RaftLog.committed, r.RaftLog.applied)
 	//Q:如何存储peer
 	//A：刚开始想的是在Raft中增加一个数据结构，后来参考网上，可以直接使用Prs存储
 	for _, peer := range c.peers {
@@ -206,11 +214,8 @@ func newRaft(c *Config) *Raft {
 	r.becomeFollower(0, None)
 
 	//恢复节点HardState
-	r.Term, r.Vote, r.RaftLog.committed = hardState.Term, hardState.Vote, hardState.Commit
-	//恢复ApplyState
-	if c.Applied > 0 {
-		r.RaftLog.applied = c.Applied
-	}
+	r.Term, r.Vote = hardState.Term, hardState.Vote
+
 	return r
 }
 
@@ -262,26 +267,27 @@ func (r *Raft) sendAppend(to uint64) bool {
 		Entries: entries,
 		Commit:  r.RaftLog.committed,
 	}
-	r.msgs = append(r.msgs, msg)
 	// log.Infof("--+++ %d send Append to %d", r.id, to)
+	r.msgs = append(r.msgs, msg)
+	//DEBUG by Sunlly
+
+	///
 	return true
 }
 
-func (r *Raft) sendAppendResponse(to uint64, success bool) {
+func (r *Raft) sendAppendResponse(to uint64, success bool, logTerm uint64, logIndex uint64) {
 	// Your Code Here (2A).
-	lastLogIndex := r.RaftLog.LastIndex()
-	lastLogTerm, _ := r.RaftLog.Term(lastLogIndex)
 	msg := pb.Message{
 		MsgType: pb.MessageType_MsgAppendResponse,
 		To:      to,
 		From:    r.id,
 		Term:    r.Term,
 		Reject:  !success,
-		LogTerm: lastLogTerm,
-		Index:   lastLogIndex,
+		LogTerm: logTerm,
+		Index:   logIndex,
 	}
 	r.msgs = append(r.msgs, msg)
-	// log.Infof("--+ %d sendAppendResponse to %d, retject: %t", r.id, to, !success)
+	// log.Infof("--+ %d sendAppendResponse to %d, reject: %t", r.id, to, !success)
 }
 
 // sendHeartbeat sends a heartbeat RPC to the given peer.
@@ -363,7 +369,7 @@ func (r *Raft) tick() {
 		//利用随机选举时间进行判断
 		if r.electionElapsed >= r.randomElectionTimeout {
 			r.resetTimeout()
-			log.Infof("---+ tick: %d Timeout ", r.id)
+			// log.Infof("---+ tick: %d Timeout ", r.id)
 			r.Step(pb.Message{MsgType: pb.MessageType_MsgHup})
 		}
 		//2.2 Leader心跳超时，处理：更新心跳并bcast心跳给所有追随者
@@ -406,7 +412,7 @@ func (r *Raft) becomeCandidate() {
 	r.votes[r.id] = true
 	r.VotedFor++
 
-	log.Infof("++ %d becomeCadidate", r.id)
+	// log.Infof("++ %d becomeCadidate", r.id)
 	//根据测试逻辑，becomeCandidate中只做状态修改，不发送选举消息
 }
 
@@ -427,7 +433,7 @@ func (r *Raft) bcastRequestVote() {
 func (r *Raft) becomeLeader() {
 	// Your Code Here (2A).
 	// NOTE: Leader should propose a noop entry on its term
-	log.Infof("+++ %d becomeLeader", r.id)
+	// log.Infof("+++ %d becomeLeader", r.id)
 	//1. 状态转换
 	if r.State != StateLeader {
 		r.resetTimeout()
@@ -452,14 +458,17 @@ func (r *Raft) becomeLeader() {
 	//下面做append操作后，lastLogIndex++
 	//后续发送时：nextIndex==lastLogIndex，故为空
 	r.RaftLog.entries = append(r.RaftLog.entries, pb.Entry{Term: r.Term, Index: lastLogIndex + 1})
-
+	for _, entry := range r.RaftLog.entries {
+		if entry.Index == 0 {
+			panic("3.leadersend: entry'idex==0")
+		}
+	}
 	//如果有其他节点，sendAppend
 	for peer := range r.Prs {
 		if peer != r.id {
 			r.sendAppend(peer)
 		}
 	}
-
 	//如果只有自己，直接提交
 	if len(r.Prs) == 1 {
 		r.RaftLog.committed = r.Prs[r.id].Match
@@ -573,7 +582,7 @@ func (r *Raft) handleAppendEntries(m pb.Message) {
 	// Your Code Here (2A).
 	// 1.消息中的任期过期，return false
 	if m.Term < r.Term {
-		r.sendAppendResponse(m.From, false)
+		r.sendAppendResponse(m.From, false, None, None)
 		return
 	}
 	//2.如果自己的任期比消息的低，return false 并变为追随者
@@ -599,7 +608,7 @@ func (r *Raft) handleAppendEntries(m pb.Message) {
 	lastLogIndex := r.RaftLog.LastIndex()
 	//3.1 如果leader认为的follow的Next大于实际的lastLogIndex, return false
 	if lastLogIndex < m.Index {
-		r.sendAppendResponse(m.From, false)
+		r.sendAppendResponse(m.From, false, None, None)
 		return
 	}
 	//3.2 取接收者的log[prevLogIndex]看能否和prevLogTerm能匹配上
@@ -609,29 +618,41 @@ func (r *Raft) handleAppendEntries(m pb.Message) {
 	}
 	//不能匹配：return false
 	if logTerm != m.LogTerm {
-		r.sendAppendResponse(m.From, false)
+		r.sendAppendResponse(m.From, false, None, lastLogIndex+1)
 		return
 	} else {
 		//可以匹配上
 		if len(m.Entries) > 0 {
-			//4.如果已经存在的条目和新条目有冲突(索引相同，任期不同)，则截断后续条目并删除
-			conflict, index := r.RaftLog.appendConflict(m.Entries)
-			if conflict {
-				r.RaftLog.deleteConflictEntries(index)
+			if len(r.RaftLog.entries) == 0 {
+				r.RaftLog.apppendNewEntries(m.Entries)
+			} else {
+				//4.如果已经存在的条目和新条目有冲突(索引相同，任期不同)，则截断后续条目并删除
+				conflict, index := r.RaftLog.appendConflict(m.Entries)
+				if conflict {
+					r.RaftLog.deleteConflictEntries(index)
+				}
+				//5.删除重复的日志并追加新日志条目
+				_, ents := r.RaftLog.deleteRepeatEntries(m.Entries)
+				for _, entry := range ents {
+					if entry.Index == 0 {
+						panic("1.handleappendresponse: entry Index==0")
+					}
+				}
+				if len(ents) > 0 {
+					r.RaftLog.apppendNewEntries(ents)
+				}
 			}
-			//5.删除重复的日志并追加新日志条目
-			_, ents := r.RaftLog.deleteRepeatEntries(m.Entries)
-			if len(ents) > 0 {
-				r.RaftLog.apppendNewEntries(ents)
-			}
-		}
 
+		}
 		//6.更新committed
 		//如果leader的Commit大于接收者的committed，则取leaderCommit和lastLogIndex的最小值作为更新
 		if m.Commit > r.RaftLog.committed {
 			r.RaftLog.committed = min(m.Commit, m.Index+uint64(len(m.Entries)))
 		}
-		r.sendAppendResponse(m.From, true)
+		last := r.RaftLog.LastIndex()
+		// log.Infof("handleApp:%d,len:%d,first:%d,last:%d", r.id, len(r.RaftLog.entries), r.RaftLog.FirstIndex, last)
+		lastTerm, _ := r.RaftLog.Term(last)
+		r.sendAppendResponse(m.From, true, lastTerm, last)
 	}
 }
 
@@ -687,7 +708,7 @@ func (r *Raft) updateCommit() {
 		}
 		//3.2 更新committed，并通知跟随者更新
 		r.RaftLog.committed = mid
-		log.Infof("*--+++ %d committed: %d ", r.id, r.RaftLog.committed)
+		// log.Infof("*--+++ %d committed: %d ", r.id, r.RaftLog.committed)
 		for peer := range r.Prs {
 			if peer != r.id {
 				r.sendAppend(peer)
@@ -809,11 +830,15 @@ func (r *Raft) appendEntries(entries []*pb.Entry) {
 		entry.Term = r.Term
 		entry.Index = lastIndex + uint64(i) + 1
 		ent = append(ent, entry)
-		log.Infof("*-- Propose appendEntries: %d, index: %d ,State:", r.id, entry.Index, r.State)
+		// log.Infof("*-- Propose appendEntries: %d, index: %d ,State:%s", r.id, entry.Index, r.State)
 	}
 	//2.添加entry到日志条目
+	for _, entry := range ent {
+		if entry.Index == 0 {
+			panic("2.append: entry Index==0")
+		}
+	}
 	if len(ent) > 0 {
-
 		r.RaftLog.apppendNewEntries(ent)
 	}
 	//3.更新Prs
