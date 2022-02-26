@@ -378,10 +378,16 @@ func (ps *PeerStorage) SaveReadyState(ready *raft.Ready) (*ApplySnapResult, erro
 	//2C 快照处理
 	//1.持久化日志
 	raftWB := new(engine_util.WriteBatch)
+	//DEBUG by Sunlly
+	entFirstIndex := ready.Entries[0].Index
+	entLastIndex := ready.Entries[len(ready.Entries)-1].Index
+	log.Infof("saveReady:%d,entfirst:%d,entlast:%d", ps.region.Id, entFirstIndex, entLastIndex)
+	//
 	ps.Append(ready.Entries, raftWB)
 	//2.持久化RaftLocalState(HardState，LastLogIndex)
 	if len(ready.Entries) > 0 {
 		LastIndex := ready.Entries[len(ready.Entries)-1].Index
+		log.Infof("saveReady:%d,entlast:%d,pslast:%d", ps.region.Id, entLastIndex, ps.raftState.LastIndex)
 		if LastIndex > ps.raftState.LastIndex {
 			ps.raftState.LastIndex = LastIndex
 			ps.raftState.LastTerm = ready.Entries[len(ready.Entries)-1].Term
