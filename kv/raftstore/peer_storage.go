@@ -350,7 +350,11 @@ func (ps *PeerStorage) Append(entries []eraftpb.Entry, raftWB *engine_util.Write
 		for i := entLastIndex + 1; i <= wbLastIndex; i++ {
 			raftWB.DeleteMeta(meta.RaftLogKey(ps.region.Id, i))
 		}
+		log.Infof("append:%d, deleteMeta", ps.region.Id)
 	}
+	//更新raftState，注意append和delete两种情况都要更新
+	ps.raftState.LastIndex = entLastIndex
+	ps.raftState.LastTerm = entries[len(entries)-1].Term
 	return nil
 }
 
@@ -378,21 +382,21 @@ func (ps *PeerStorage) SaveReadyState(ready *raft.Ready) (*ApplySnapResult, erro
 	var result *ApplySnapResult
 	var err error
 	//2C 快照处理
-	//1.持久化日志
+	//1.持久化日志、持久化RaftLocalState(HardState，LastLogIndex)
 	raftWB := new(engine_util.WriteBatch)
 	//DEBUG by Sunlly
-
 	ps.Append(ready.Entries, raftWB)
-	//2.持久化RaftLocalState(HardState，LastLogIndex)
-	if len(ready.Entries) > 0 {
-		LastIndex := ready.Entries[len(ready.Entries)-1].Index
-		log.Infof("saveReady:%d,entlast:%d,pslast:%d", ps.region.Id, LastIndex, ps.raftState.LastIndex)
-		if LastIndex > ps.raftState.LastIndex {
-			ps.raftState.LastIndex = LastIndex
-			ps.raftState.LastTerm = ready.Entries[len(ready.Entries)-1].Term
-		}
-		log.Infof("aftersaveReady:%d,entlast:%d,pslast:%d", ps.region.Id, LastIndex, ps.raftState.LastIndex)
-	}
+	// //2.
+	// if len(ready.Entries) > 0 {
+	// 	LastIndex := ready.Entries[len(ready.Entries)-1].Index
+	// 	log.Infof("saveReady:%d,entlast:%d,pslast:%d", ps.region.Id, LastIndex, ps.raftState.LastIndex)
+	// 	// if LastIndex > ps.raftState.LastIndex {
+	// 	// 	ps.raftState.LastIndex = LastIndex
+	// 	// 	ps.raftState.LastTerm = ready.Entries[len(ready.Entries)-1].Term
+	// 	// }
+	// 	log.Infof("aftersaveReady:%d,entlast:%d,pslast:%d", ps.region.Id, LastIndex, ps.raftState.LastIndex)
+	// }
+
 	//3.持久化HardState
 	if !raft.IsEmptyHardState(ready.HardState) {
 		ps.raftState.HardState = &ready.HardState
