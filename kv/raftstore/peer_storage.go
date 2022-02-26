@@ -327,7 +327,7 @@ func (ps *PeerStorage) Append(entries []eraftpb.Entry, raftWB *engine_util.Write
 	//被持久化的最后一个日志
 	wbLastIndex, _ := ps.LastIndex()
 
-	log.Infof("append:%d, len: %d, entfirst:%d, entlast:%d,wbfirst:%d,wblast:%d", ps.region.Id, len(entries), entFirstIndex, entLastIndex, wbFirstIndex, wbLastIndex)
+	// log.Infof("append:%d, len: %d, entfirst:%d, entlast:%d,wbfirst:%d,wblast:%d", ps.region.Id, len(entries), entFirstIndex, entLastIndex, wbFirstIndex, wbLastIndex)
 	//1.如果entLast比wbFirst小，说明ent是过时的数据，不作处理
 	if entLastIndex < wbFirstIndex {
 		return nil
