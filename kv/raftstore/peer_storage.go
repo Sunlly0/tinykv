@@ -326,6 +326,8 @@ func (ps *PeerStorage) Append(entries []eraftpb.Entry, raftWB *engine_util.Write
 	wbFirstIndex, _ := ps.FirstIndex()
 	//被持久化的最后一个日志
 	wbLastIndex, _ := ps.LastIndex()
+
+	log.Infof("append:%d, len: %d, entfirst:%d, entlast:%d,wbfirst:%d,wblast:%d", ps.region.Id, len(entries), entFirstIndex, entLastIndex, wbFirstIndex, wbLastIndex)
 	//1.如果entLast比wbFirst小，说明ent是过时的数据，不作处理
 	if entLastIndex < wbFirstIndex {
 		return nil
@@ -379,19 +381,17 @@ func (ps *PeerStorage) SaveReadyState(ready *raft.Ready) (*ApplySnapResult, erro
 	//1.持久化日志
 	raftWB := new(engine_util.WriteBatch)
 	//DEBUG by Sunlly
-	entFirstIndex := ready.Entries[0].Index
-	entLastIndex := ready.Entries[len(ready.Entries)-1].Index
-	log.Infof("saveReady:%d,entfirst:%d,entlast:%d", ps.region.Id, entFirstIndex, entLastIndex)
-	//
+
 	ps.Append(ready.Entries, raftWB)
 	//2.持久化RaftLocalState(HardState，LastLogIndex)
 	if len(ready.Entries) > 0 {
 		LastIndex := ready.Entries[len(ready.Entries)-1].Index
-		log.Infof("saveReady:%d,entlast:%d,pslast:%d", ps.region.Id, entLastIndex, ps.raftState.LastIndex)
+		log.Infof("saveReady:%d,entlast:%d,pslast:%d", ps.region.Id, LastIndex, ps.raftState.LastIndex)
 		if LastIndex > ps.raftState.LastIndex {
 			ps.raftState.LastIndex = LastIndex
 			ps.raftState.LastTerm = ready.Entries[len(ready.Entries)-1].Term
 		}
+		log.Infof("aftersaveReady:%d,entlast:%d,pslast:%d", ps.region.Id, LastIndex, ps.raftState.LastIndex)
 	}
 	//3.持久化HardState
 	if !raft.IsEmptyHardState(ready.HardState) {
