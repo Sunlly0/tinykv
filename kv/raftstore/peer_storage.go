@@ -315,11 +315,7 @@ func (ps *PeerStorage) Append(entries []eraftpb.Entry, raftWB *engine_util.Write
 	if len(entries) == 0 {
 		return nil
 	}
-	// for _, entry := range entries {
-	// 	if entry.Index == 0 {
-	// 		panic("append: entry Index == 0")
-	// 	}
-	// }
+
 	entFirstIndex := entries[0].Index
 	entLastIndex := entries[len(entries)-1].Index
 	//Q:wbFirstIndex是否可以理解为applied后commit前的第一个日志？
@@ -335,10 +331,6 @@ func (ps *PeerStorage) Append(entries []eraftpb.Entry, raftWB *engine_util.Write
 	//2.否则，对wbFirstIndex以前的日志，做截断（因为已经被应用？）
 	if entFirstIndex < wbFirstIndex {
 		//Q:数组越界？
-		// log.Infof("append:%d, len: %d, entfirst:%d, entlast:%d,wbfirst:%d,wblast:%d", ps.region.Id, len(entries), entFirstIndex, entLastIndex, wbFirstIndex, wbLastIndex)
-		// for i, entry := range entries {
-		// 	log.Infof("append: entrynum:%d, index:%d", i, entry.Index)
-		// }
 		entries = entries[wbFirstIndex-entFirstIndex:]
 	}
 	//3.添加到raftlog中（重复的自动覆盖）

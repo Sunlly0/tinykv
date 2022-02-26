@@ -244,7 +244,7 @@ func (r *Raft) sendAppend(to uint64) bool {
 	}
 	entries := make([]*pb.Entry, 0)
 	nextIndex := r.Prs[to].Next
-	log.Infof("%d sendAppend to %d: entfirst:%d, entlast:%d,len:%d,next:%d", r.id, to, r.RaftLog.FirstIndex, r.RaftLog.LastIndex(), len(r.RaftLog.entries), r.Prs[to].Next)
+
 	//如果不对next==0做判断，此处的prevLogIndex将为负数
 	prevLogIndex := nextIndex - 1
 	prevLogTerm, _ := r.RaftLog.Term(prevLogIndex)
@@ -270,6 +270,7 @@ func (r *Raft) sendAppend(to uint64) bool {
 		Commit:  r.RaftLog.committed,
 	}
 	// log.Infof("--+++ %d send Append to %d", r.id, to)
+	log.Infof("%d sendAppend to %d: entfirst:%d, entlast:%d,len:%d,next:%d,index:%d", r.id, to, r.RaftLog.FirstIndex, r.RaftLog.LastIndex(), len(r.RaftLog.entries), r.Prs[to].Next, msg.Index)
 	r.msgs = append(r.msgs, msg)
 	//DEBUG by Sunlly
 
@@ -585,7 +586,7 @@ func (r *Raft) handleAppendEntries(m pb.Message) {
 	// 1.消息中的任期过期，return false
 	if m.Term < r.Term {
 		log.Infof("&&&1: sendAppenResponse:")
-		log.Infof("++---- %d handleAppend: r.Term:%d , m.Term:%d,", r.Term, m.Term)
+		log.Infof("++---- %d handleAppend: r.Term:%d , m.Term:%d,", r.id, r.Term, m.Term)
 		r.sendAppendResponse(m.From, false, None, None)
 		return
 	}
@@ -610,11 +611,16 @@ func (r *Raft) handleAppendEntries(m pb.Message) {
 	//3.如果接收者没有能匹配上的leader的日志条目,即prevLogIndex和prevLogTerm的索引任期一样的条目
 	//m.Index即prevLogIndex,m.LogTerm即prevLogTerm
 	lastLogIndex := r.RaftLog.LastIndex()
+
 	//3.1 如果leader认为的follow的Next大于实际的lastLogIndex, return false
 	if lastLogIndex < m.Index {
 		log.Infof("&&&2: sendAppenResponse:")
 		log.Infof("++---- %d handleAppend: first:%d last:%d, len:%d, m.Index:%d, lenAppend:%d", r.id, r.RaftLog.FirstIndex, r.RaftLog.LastIndex(), len(r.RaftLog.entries), m.Index, len(m.Entries))
 		r.sendAppendResponse(m.From, false, None, lastLogIndex+1)
+		return
+	}
+	//****增加条件，避免对多余的append做处理
+	if r.RaftLog.FirstIndex > m.Index && len(r.RaftLog.entries) > 0 {
 		return
 	}
 	//如果所有日志都不匹配

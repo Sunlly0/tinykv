@@ -16,7 +16,7 @@ echo "test:$i"
 	$(go clean -testcache)
 	clearFunc
 	if [[ $check_results =~ "FAIL" ]]; then
-		echo "$check_results" > result2b_200.txt
+		echo "$check_results" > result2b_200_2.txt
 		clearFunc
 		break
 	fi
