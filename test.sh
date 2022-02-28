@@ -8,7 +8,7 @@ clearFunc() {
 		fi
 	done
 }
-for ((i = 1; i <= 100; i++)); do
+for ((i = 1; i <= 150; i++)); do
 echo "test:$i"
 	# check_results=$(make project2b)
 	check_results=$( go test -v -run TestPersistPartition2B ./kv/test_raftstore )
@@ -16,7 +16,7 @@ echo "test:$i"
 	$(go clean -testcache)
 	clearFunc
 	if [[ $check_results =~ "FAIL" ]]; then
-		echo "$check_results" > result2b_50.txt
+		echo "$check_results" > result2b_150.txt
 		clearFunc
 		break
 	fi

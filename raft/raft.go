@@ -312,6 +312,7 @@ func (r *Raft) sendHeartbeat(to uint64) {
 //send by Follower, in normal situation
 func (r *Raft) sendHeartbeatResponse(to uint64, reject bool) {
 	// by Sunlly0
+	lastLogTerm, _ := r.RaftLog.Term(r.RaftLog.LastIndex())
 	msg := pb.Message{
 		MsgType: pb.MessageType_MsgHeartbeatResponse,
 		To:      to,
@@ -320,7 +321,9 @@ func (r *Raft) sendHeartbeatResponse(to uint64, reject bool) {
 		//Q:为啥HeartbearResponse会考虑reject?
 		//A：每个消息都带有任期信息，如果接收者发现m.Term>r.Term，
 		//直接变为跟随者，并在response消息中附上Reject=true
-		Reject: reject,
+		Reject:  reject,
+		Index:   r.RaftLog.LastIndex(),
+		LogTerm: lastLogTerm,
 	}
 	r.msgs = append(r.msgs, msg)
 }
@@ -585,7 +588,7 @@ func (r *Raft) handleAppendEntries(m pb.Message) {
 	// Your Code Here (2A).
 	// 1.消息中的任期过期，return false
 	if m.Term < r.Term {
-		log.Infof("&&&1: sendAppenResponse:")
+		log.Infof("&&&1: %d sendAppendResponse:", r.id)
 		log.Infof("++---- %d handleAppend: r.Term:%d , m.Term:%d,", r.id, r.Term, m.Term)
 		r.sendAppendResponse(m.From, false, None, None)
 		return
@@ -594,14 +597,11 @@ func (r *Raft) handleAppendEntries(m pb.Message) {
 	if m.Term > r.Term {
 		r.becomeFollower(m.Term, m.From)
 		//此处不应该直接发送接收，因为发送接收则意味着和leader的日志已经完全同步
-		// r.sendAppendResponse(m.From, true)
-		// return
+
 	}
 	//2.2或自己是候选者收到任期至少相同的领导者消息，变为追随者
 	if m.Term == r.Term && r.State == StateCandidate {
 		r.becomeFollower(m.Term, m.From)
-		// r.sendAppendResponse(m.From, true)
-		// return
 	}
 	if m.Term == r.Term && r.Lead == None {
 		r.becomeFollower(m.Term, m.From)
@@ -614,8 +614,8 @@ func (r *Raft) handleAppendEntries(m pb.Message) {
 
 	//3.1 如果leader认为的follow的Next大于实际的lastLogIndex, return false
 	if lastLogIndex < m.Index {
-		log.Infof("&&&2: sendAppenResponse:")
-		log.Infof("++---- %d handleAppend: first:%d last:%d, len:%d, m.Index:%d, lenAppend:%d", r.id, r.RaftLog.FirstIndex, r.RaftLog.LastIndex(), len(r.RaftLog.entries), m.Index, len(m.Entries))
+		log.Infof("&&&2: %d sendAppenResponse:", r.id)
+		log.Infof("++---- %d handleAppend: first:%d last:%d, len:%d, m.Index:%d, lenAppend:%d, r.Term:%d, m.Term:%d", r.id, r.RaftLog.FirstIndex, r.RaftLog.LastIndex(), len(r.RaftLog.entries), m.Index, len(m.Entries), r.Term, m.Term)
 		r.sendAppendResponse(m.From, false, None, lastLogIndex+1)
 		return
 	}
@@ -695,7 +695,7 @@ func (r *Raft) handleAppendEntries(m pb.Message) {
 		last := r.RaftLog.LastIndex()
 		// log.Infof("handleApp:%d,len:%d,first:%d,last:%d", r.id, len(r.RaftLog.entries), r.RaftLog.FirstIndex, last)
 		lastTerm, _ := r.RaftLog.Term(last)
-		log.Infof("&&&4: sendAppenResponse:")
+		log.Infof("&&&4: %d sendAppenResponse:", r.id)
 		r.sendAppendResponse(m.From, true, lastTerm, last)
 	}
 }
@@ -703,14 +703,21 @@ func (r *Raft) handleAppendEntries(m pb.Message) {
 //handleAppendEntriesResponse by leader
 func (r *Raft) handleAppendEntriesResponse(m pb.Message) {
 	if m.Term > r.Term {
+		log.Infof("&&&Term1: handleAppenResponse: Reject")
+		log.Infof("+++---- %d handleAR: from: %d , m.Term:%d, r.Term:%d", r.id, m.From, m.Term, r.Term)
 		r.becomeFollower(m.Term, None)
+		return
+	}
+	if m.Term < r.Term {
+		log.Infof("&&&Term2: handleAppenResponse: Reject")
+		log.Infof("+++---- %d handleAR: from: %d , m.Term:%d, r.Term:%d", r.id, m.From, m.Term, r.Term)
 		return
 	}
 	//1. 如果收到拒绝消息
 	if m.Reject {
 		//Next-1,重试
 		// index := m.Index
-		log.Infof("&&&0: handleAppenResponse: Reject")
+		log.Infof("&&&0: %d handleAppenResponse: Reject, Form:%d", r.id, m.From)
 		log.Infof("+++---- %d handleAR: from: %d ,", r.id, m.From)
 		r.Prs[m.From].Next--
 		// log.Infof("***%d commit:%d", r.id, r.RaftLog.committed)
@@ -789,6 +796,8 @@ func (r *Raft) handleHeartbeatResponse(m pb.Message) {
 		}
 	} else {
 		//2.否则保持领导者状态，检查Match，如果低于自己的LastLogIndex则发送Append同步
+		// lastLogTerm, _ := r.RaftLog.Term(r.RaftLog.LastIndex())
+		// if m.LogTerm < lastLogTerm || m.LogTerm == lastLogTerm && m.Index < r.RaftLog.LastIndex() {
 		if r.Prs[m.From].Match < r.RaftLog.LastIndex() {
 			r.sendAppend(m.From)
 		}
