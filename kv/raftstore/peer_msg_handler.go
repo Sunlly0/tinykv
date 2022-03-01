@@ -123,13 +123,31 @@ func (d *peerMsgHandler) process(entry *eraftpb.Entry, wb *engine_util.WriteBatc
 	if len(msg.Requests) > 0 {
 		d.processRequest(entry, msg, wb)
 	} else if msg.AdminRequest != nil {
-		// d.processAdminRequest(entry, msg, wb)
+		d.processAdminRequest(entry, msg, wb)
+	}
+}
+
+//2c 快照 by Sunlly
+func (d *peerMsgHandler) processAdminRequest(entry *eraftpb.Entry, msg *raft_cmdpb.RaftCmdRequest, wb *engine_util.WriteBatch) {
+	req := msg.AdminRequest
+	// resp := &raft_cmdpb.RaftCmdResponse{Header: &raft_cmdpb.RaftResponseHeader{}}
+	switch req.CmdType {
+	//1.快照命令的处理
+	case raft_cmdpb.AdminCmdType_CompactLog:
+		log.Infof("*** %d process CompactLog:", d.regionId)
+		compactLog := req.GetCompactLog()
+		//如果compactLog命令的值更大，更新截断的Index和Term
+		if compactLog.CompactIndex >= d.peerStorage.truncatedIndex() {
+			d.peerStorage.applyState.TruncatedState.Index = compactLog.CompactIndex
+			d.peerStorage.applyState.TruncatedState.Term = compactLog.CompactTerm
+			wb.SetMeta(meta.ApplyStateKey(d.regionId), d.peerStorage.applyState)
+			d.ScheduleCompactLog(d.peerStorage.truncatedIndex())
+		}
 	}
 }
 
 //by Sunlly
 func (d *peerMsgHandler) processRequest(entry *eraftpb.Entry, msg *raft_cmdpb.RaftCmdRequest, wb *engine_util.WriteBatch) *engine_util.WriteBatch {
-
 	req := msg.Requests[0]
 	key := d.getRequestKey(req)
 	if key != nil {
@@ -199,7 +217,7 @@ func (d *peerMsgHandler) HandleRaftReady() {
 	if !d.RaftGroup.HasReady() {
 		return
 	}
-	// log.Infof("--- handleRaftReady %d ", d.RaftGroup.GetRaftId())
+	log.Infof("--- handleRaftReady %d ", d.RaftGroup.GetRaftId())
 	rd := d.RaftGroup.Ready()
 	//2.将Ready持久化到badger.(保存Raftdb的信息)，必须持久化之后才处理Ready
 	result, err := d.peerStorage.SaveReadyState(&rd)
@@ -219,6 +237,11 @@ func (d *peerMsgHandler) HandleRaftReady() {
 	}
 	//3.调用d.send方法将Ready中的Messagge发送出去
 	if len(rd.Messages) != 0 {
+		for _, msg := range rd.Messages {
+			if msg.Snapshot != nil {
+				log.Infof("%d handleRaftReady:msg with snapshot", d.RaftGroup.GetRaftId())
+			}
+		}
 		d.Send(d.ctx.trans, rd.Messages)
 	}
 	//4.应用ready.CommittedEntries中的entry（kvdb）
@@ -325,9 +348,23 @@ func (d *peerMsgHandler) proposeRaftCommand(msg *raft_cmdpb.RaftCmdRequest, cb *
 	// Your Code Here (2B).
 	// 对Admin和一般request分别做处理
 	if msg.AdminRequest != nil {
-		// d.proposeAdminRequest(msg,cb)
+		d.proposeAdminRequest(msg, cb)
 	} else {
 		d.proposeRequest(msg, cb)
+	}
+}
+
+//a switch of proposeRaftCommand by Sunlly
+func (d *peerMsgHandler) proposeAdminRequest(msg *raft_cmdpb.RaftCmdRequest, cb *message.Callback) {
+	req := msg.AdminRequest
+	switch req.CmdType {
+	case raft_cmdpb.AdminCmdType_CompactLog:
+		log.Infof("*** %d propose CompactLog:", d.regionId)
+		data, err := msg.Marshal()
+		if err != nil {
+			panic(err)
+		}
+		d.RaftGroup.Propose(data)
 	}
 }
 

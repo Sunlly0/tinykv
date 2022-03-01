@@ -362,7 +362,38 @@ func (ps *PeerStorage) ApplySnapshot(snapshot *eraftpb.Snapshot, kvWB *engine_ut
 	// and send RegionTaskApply task to region worker through ps.regionSched, also remember call ps.clearMeta
 	// and ps.clearExtraData to delete stale data
 	// Your Code Here (2C).
-	return nil, nil
+	//1.清除旧的meta数据
+	if ps.isInitialized() {
+		ps.clearMeta(kvWB, raftWB)
+		ps.clearExtraData(snapData.Region)
+	}
+	//2.更新持久化状态
+	ps.raftState.LastIndex = snapshot.Metadata.Index
+	ps.raftState.LastTerm = snapshot.Metadata.Term
+	ps.applyState.AppliedIndex = snapshot.Metadata.Index
+	ps.applyState.TruncatedState.Index = snapshot.Metadata.Index
+	ps.applyState.TruncatedState.Term = snapshot.Metadata.Term
+
+	ps.snapState.StateType = snap.SnapState_Applying
+	//Q:为啥此处用snapData.Region.Id?
+	kvWB.SetMeta(meta.ApplyStateKey(snapData.Region.Id), ps.applyState)
+	//3.向regionWorker发消息
+	ch := make(chan bool, 1)
+	ps.regionSched <- &runner.RegionTaskApply{
+		RegionId: ps.region.Id,
+		Notifier: ch,
+		SnapMeta: snapshot.Metadata,
+		StartKey: snapData.Region.StartKey,
+		EndKey:   snapData.Region.EndKey,
+	}
+	<-ch
+
+	result := &ApplySnapResult{
+		PrevRegion: ps.region,
+		Region:     snapData.Region,
+	}
+	meta.WriteRegionState(kvWB, snapData.Region, rspb.PeerState_Normal)
+	return result, nil
 }
 
 // Save memory states to disk.
@@ -373,21 +404,21 @@ func (ps *PeerStorage) SaveReadyState(ready *raft.Ready) (*ApplySnapResult, erro
 	//持久化Ready中的数据
 	var result *ApplySnapResult
 	var err error
-	//2C 快照处理
-	//1.持久化日志、持久化RaftLocalState(HardState，LastLogIndex)
+
+	//1.持久化快照
 	raftWB := new(engine_util.WriteBatch)
-	//DEBUG by Sunlly
+	if !raft.IsEmptySnap(&ready.Snapshot) {
+		log.Infof("*** %d saveReadyState:snapshot:", ps.region.Id)
+		kvWB := new(engine_util.WriteBatch)
+		result, err = ps.ApplySnapshot(&ready.Snapshot, kvWB, raftWB)
+		if err != nil {
+			panic(err)
+		}
+		kvWB.WriteToDB(ps.Engines.Kv)
+	}
+
+	//2.持久化日志、持久化RaftLocalState(HardState，LastLogIndex)
 	ps.Append(ready.Entries, raftWB)
-	// //2.
-	// if len(ready.Entries) > 0 {
-	// 	LastIndex := ready.Entries[len(ready.Entries)-1].Index
-	// 	log.Infof("saveReady:%d,entlast:%d,pslast:%d", ps.region.Id, LastIndex, ps.raftState.LastIndex)
-	// 	// if LastIndex > ps.raftState.LastIndex {
-	// 	// 	ps.raftState.LastIndex = LastIndex
-	// 	// 	ps.raftState.LastTerm = ready.Entries[len(ready.Entries)-1].Term
-	// 	// }
-	// 	log.Infof("aftersaveReady:%d,entlast:%d,pslast:%d", ps.region.Id, LastIndex, ps.raftState.LastIndex)
-	// }
 
 	//3.持久化HardState
 	if !raft.IsEmptyHardState(ready.HardState) {
@@ -395,7 +426,11 @@ func (ps *PeerStorage) SaveReadyState(ready *raft.Ready) (*ApplySnapResult, erro
 	}
 	//4.存储至raftdv
 	err = raftWB.SetMeta(meta.RaftStateKey(ps.region.Id), ps.raftState)
+	if err != nil {
+		panic(err)
+	}
 	err = raftWB.WriteToDB(ps.Engines.Raft)
+
 	return result, err
 }
 

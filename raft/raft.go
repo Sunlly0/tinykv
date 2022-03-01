@@ -239,16 +239,29 @@ func (r *Raft) getHardState() pb.HardState {
 func (r *Raft) sendAppend(to uint64) bool {
 	// Your Code Here (2A).
 	//Q:为啥需要添加这个条件？是因为Next==0的时候一定是空的entries吗？
+	//A: 对于新加入的节点，发送Snapshot
+	//sendSnapshot1:新加入节点
 	if r.Prs[to].Match == 0 && r.Prs[to].Next == 0 {
+		log.Infof("***+++ %d &&&1 sendAppend: to %d", r.id, to)
+		r.sendSnapshot(to)
 		return false
 	}
-	entries := make([]*pb.Entry, 0)
-	nextIndex := r.Prs[to].Next
 
+	nextIndex := r.Prs[to].Next
 	//如果不对next==0做判断，此处的prevLogIndex将为负数
 	prevLogIndex := nextIndex - 1
-	prevLogTerm, _ := r.RaftLog.Term(prevLogIndex)
-	// lastLogIndex, _ := r.RaftLog.Term(r.RaftLog.LastIndex())
+	prevLogTerm, err := r.RaftLog.Term(prevLogIndex)
+	if err != nil {
+		if err == ErrCompacted {
+			//sendSnapshot2:请求的日志已经被压缩，preveLogIndex<l.first
+			log.Infof("***+++ %d &&&2 sendAppend: to %d", r.id, to)
+			log.Infof("prevLogIndex:%d, r.RaftLog.firstIndex:%d", prevLogIndex, r.RaftLog.FirstIndex)
+			r.sendSnapshot(to)
+			return false
+		}
+		panic(err)
+	}
+	entries := make([]*pb.Entry, 0)
 	lastLogIndex := r.RaftLog.LastIndex()
 
 	//entries：从跟随者的nextIndex->leader的lastIndex
@@ -588,8 +601,8 @@ func (r *Raft) handleAppendEntries(m pb.Message) {
 	// Your Code Here (2A).
 	// 1.消息中的任期过期，return false
 	if m.Term < r.Term {
-		log.Infof("&&&1: %d sendAppendResponse:", r.id)
-		log.Infof("++---- %d handleAppend: r.Term:%d , m.Term:%d,", r.id, r.Term, m.Term)
+		// log.Infof("&&&1: %d sendAppendResponse:", r.id)
+		// log.Infof("++---- %d handleAppend: r.Term:%d , m.Term:%d,", r.id, r.Term, m.Term)
 		r.sendAppendResponse(m.From, false, None, None)
 		return
 	}
@@ -659,8 +672,8 @@ func (r *Raft) handleAppendEntries(m pb.Message) {
 	}
 	//不能匹配：return false
 	if logTerm != m.LogTerm {
-		log.Infof("&&&3: sendAppenResponse:")
-		log.Infof("++---- %d handleAppend: logTerm:%d, m.LogTerm:%d", r.id, logTerm, m.LogTerm)
+		// log.Infof("&&&3: sendAppenResponse:")
+		// log.Infof("++---- %d handleAppend: logTerm:%d, m.LogTerm:%d", r.id, logTerm, m.LogTerm)
 		r.sendAppendResponse(m.From, false, None, lastLogIndex+1)
 		return
 	} else {
@@ -703,14 +716,14 @@ func (r *Raft) handleAppendEntries(m pb.Message) {
 //handleAppendEntriesResponse by leader
 func (r *Raft) handleAppendEntriesResponse(m pb.Message) {
 	if m.Term > r.Term {
-		log.Infof("&&&Term1: handleAppenResponse: Reject")
-		log.Infof("+++---- %d handleAR: from: %d , m.Term:%d, r.Term:%d", r.id, m.From, m.Term, r.Term)
+		// log.Infof("&&&Term1: handleAppenResponse: Reject")
+		// log.Infof("+++---- %d handleAR: from: %d , m.Term:%d, r.Term:%d", r.id, m.From, m.Term, r.Term)
 		r.becomeFollower(m.Term, None)
 		return
 	}
 	if m.Term < r.Term {
-		log.Infof("&&&Term2: handleAppenResponse: Reject")
-		log.Infof("+++---- %d handleAR: from: %d , m.Term:%d, r.Term:%d", r.id, m.From, m.Term, r.Term)
+		// log.Infof("&&&Term2: handleAppenResponse: Reject")
+		// log.Infof("+++---- %d handleAR: from: %d , m.Term:%d, r.Term:%d", r.id, m.From, m.Term, r.Term)
 		return
 	}
 	//1. 如果收到拒绝消息
@@ -887,7 +900,7 @@ func (r *Raft) appendEntries(entries []*pb.Entry) {
 		entry.Term = r.Term
 		entry.Index = lastIndex + uint64(i) + 1
 		ent = append(ent, entry)
-		log.Infof("*-- Propose appendEntries: %d, index: %d ,State:%s", r.id, entry.Index, r.State)
+		log.Infof("*-- %d Propose appendEntries: , index: %d ,State:%s", r.id, entry.Index, r.State)
 	}
 	//2.添加entry到日志条目
 	// for _, entry := range ent {
@@ -914,9 +927,54 @@ func (r *Raft) appendEntries(entries []*pb.Entry) {
 
 }
 
+//2c by Sunlly0
+func (r *Raft) sendSnapshot(to uint64) {
+	log.Infof("***+++ %d sendSnapshot: to %d", r.id, to)
+	snapshot, err := r.RaftLog.storage.Snapshot()
+	if err != nil {
+		log.Infof("%d sendSnapshot:fail", r.id)
+		return
+	}
+	msg := pb.Message{
+		To:       to,
+		From:     r.id,
+		Term:     r.Term,
+		Snapshot: &snapshot,
+	}
+	r.msgs = append(r.msgs, msg)
+	log.Infof("%d sendSnapshot:success", r.id)
+	r.Prs[to].Next = snapshot.Metadata.Index + 1
+}
+
 // handleSnapshot handle Snapshot RPC request
 func (r *Raft) handleSnapshot(m pb.Message) {
 	// Your Code Here (2C).
+	log.Infof("****+++ %d handleSnapshot:From %d", r.id, m.From)
+	meta := m.Snapshot.Metadata
+	//1.判断快照是否过期
+	if meta.Index <= r.RaftLog.committed {
+		log.Infof(" %d handleSnapshot:out of date", r.id)
+		r.sendAppendResponse(m.From, true, None, r.RaftLog.committed)
+		return
+	}
+	//2.更新自身状态
+	r.becomeFollower(max(r.Term, m.Term), m.From)
+	if len(r.RaftLog.entries) > 0 {
+		r.RaftLog.entries = nil
+	}
+	r.RaftLog.applied = meta.Index
+	r.RaftLog.committed = meta.Index
+	r.RaftLog.FirstIndex = meta.Index + 1
+	r.RaftLog.stabled = meta.Index
+	r.Prs = make(map[uint64]*Progress)
+	for _, peer := range meta.ConfState.Nodes {
+		r.Prs[peer] = &Progress{}
+	}
+	//3.保存快照，以便后续的应用
+	r.RaftLog.pendingSnapshot = m.Snapshot
+	//4. 回复appendResponse
+	log.Infof(" %d handleSnapshot:success", r.id)
+	r.sendAppendResponse(m.From, true, None, r.RaftLog.LastIndex())
 }
 
 // addNode add a new node to raft group

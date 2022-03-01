@@ -17,6 +17,7 @@ package raft
 import (
 	"errors"
 
+	"github.com/pingcap-incubator/tinykv/log"
 	pb "github.com/pingcap-incubator/tinykv/proto/pkg/eraftpb"
 )
 
@@ -168,9 +169,6 @@ func (rn *RawNode) Ready() Ready {
 		Entries:          r.RaftLog.unstableEntries(),
 		CommittedEntries: r.RaftLog.nextEnts(),
 		Messages:         r.msgs,
-		// HardState:        hardState,
-		// SoftState:        softState,
-		// Snapshot:         *r.RaftLog.pendingSnapshot,
 	}
 	//2.保存状态
 	//Q:硬状态在何时保存？
@@ -184,6 +182,10 @@ func (rn *RawNode) Ready() Ready {
 	if !rn.preSoftState.equal(r.getSoftState()) {
 		rn.preSoftState = softState
 		rd.SoftState = softState
+	}
+	if !IsEmptySnap(r.RaftLog.pendingSnapshot) {
+		log.Infof("*** %d Ready:pendingSnapshot:", rn.Raft.id)
+		rd.Snapshot = *r.RaftLog.pendingSnapshot
 	}
 	//3.清空消息和快照
 	r.msgs = make([]pb.Message, 0)
@@ -219,6 +221,7 @@ func (rn *RawNode) HasReady() bool {
 	}
 	//4.快照不为空
 	if !IsEmptySnap(r.RaftLog.pendingSnapshot) {
+		log.Infof("*** %d HasReady:snapshot:", rn.Raft.id)
 		return true
 	}
 	return false
@@ -244,7 +247,6 @@ func (rn *RawNode) Advance(rd Ready) {
 		rn.Raft.RaftLog.stabled = newstabled
 		// log.Infof("**----advance: %d, newstabled:%d", rn.GetRaftId(), newstabled)
 	}
-
 	rn.Raft.RaftLog.maybeCompact()
 }
 
