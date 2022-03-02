@@ -624,6 +624,7 @@ func (r *Raft) handleAppendEntries(m pb.Message) {
 	//3.如果接收者没有能匹配上的leader的日志条目,即prevLogIndex和prevLogTerm的索引任期一样的条目
 	//m.Index即prevLogIndex,m.LogTerm即prevLogTerm
 	lastLogIndex := r.RaftLog.LastIndex()
+	lastEntIndex := m.Index + uint64(len(m.Entries))
 
 	//3.1 如果leader认为的follow的Next大于实际的lastLogIndex, return false
 	if lastLogIndex < m.Index {
@@ -633,84 +634,86 @@ func (r *Raft) handleAppendEntries(m pb.Message) {
 		return
 	}
 	//****增加条件，避免对多余的append做处理
-	if r.RaftLog.FirstIndex > m.Index && len(r.RaftLog.entries) > 0 {
-		return
-	}
-	//如果所有日志都不匹配
-	// if r.RaftLog.FirstIndex > m.Index && len(r.RaftLog.entries) > 0 {
-	// 	log.Infof("***panic: all entries are conflict!!!")
-	// 	log.Infof("***commit:%d", r.RaftLog.committed)
-	// 	log.Infof("***applied:%d", r.RaftLog.applied)
-	// 	log.Infof("++---- %d handleAppend: first:%d last:%d, len:%d, m.Index:%d, lenAppend:%d", r.id, r.RaftLog.FirstIndex, r.RaftLog.LastIndex(), len(r.RaftLog.entries), m.Index, len(m.Entries))
-	// 	panic("***panic: all entries are conflict!!!")
-	// 	// r.RaftLog.deleteConflictEntries(r.RaftLog.FirstIndex)
-	// 	// r.RaftLog.entries = make([]pb.Entry, 0)
-	// 	// r.RaftLog.stabled = r.RaftLog.FirstIndex
-	// 	// if len(m.Entries) > 0 {
-	// 	// 	r.RaftLog.apppendNewEntries(m.Entries)
-	// 	// }
-	// 	// //如果leader的Commit大于接收者的committed，则取leaderCommit和lastLogIndex的最小值作为更新
-	// 	// if m.Commit > r.RaftLog.committed {
-	// 	// 	r.RaftLog.committed = min(m.Commit, m.Index+uint64(len(m.Entries)))
-	// 	// }
-	// 	// last := r.RaftLog.LastIndex()
-	// 	// // log.Infof("handleApp:%d,len:%d,first:%d,last:%d", r.id, len(r.RaftLog.entries), r.RaftLog.FirstIndex, last)
-	// 	// lastTerm, _ := r.RaftLog.Term(last)
-	// 	// r.sendAppendResponse(m.From, true, lastTerm, last)
-	// 	// return
+	// if r.RaftLog.FirstIndex > m.Index && (len(r.RaftLog.entries) > 0 || !IsEmptySnap(r.RaftLog.pendingSnapshot)) {
+	// 	return
 	// }
+	if r.RaftLog.FirstIndex <= m.Index {
+		log.Infof("++---- %d handleAppend: first:%d last:%d, len:%d, m.Index:%d, lenAppend:%d", r.id, r.RaftLog.FirstIndex, r.RaftLog.LastIndex(), len(r.RaftLog.entries), m.Index, len(m.Entries))
+		//3.2 取接收者的log[prevLogIndex]看能否和prevLogTerm能匹配上
+		logTerm, err := r.RaftLog.Term(m.Index)
+		log.Infof("++---- %d handleAppend: logTerm:%d, m.LogTerm:%d", r.id, logTerm, m.LogTerm)
+		if err != nil {
+			log.Infof("***panic: Term:%d", m.Index)
+			panic(err)
+		}
+		//不能匹配：return false
+		if logTerm != m.LogTerm {
+			// log.Infof("&&&3: sendAppenResponse:")
+			// log.Infof("++---- %d handleAppend: logTerm:%d, m.LogTerm:%d", r.id, logTerm, m.LogTerm)
+			r.sendAppendResponse(m.From, false, None, lastLogIndex+1)
+			return
+		}
+	}
+	//如果firstIndex>m.Index：恰好entries的开头为firstindex
+	//如果firstIndex>（m.Index+1）：截断前面的日志，避免后续可能造成的问题
+	if r.RaftLog.FirstIndex > m.Index+1 {
+		if uint64(len(m.Entries)) <= (r.RaftLog.FirstIndex - (m.Index + 1)) {
+			m.Entries = make([]*pb.Entry, 0)
+		} else {
+			m.Entries = m.Entries[r.RaftLog.FirstIndex-(m.Index+1):]
+		}
+	}
+	// log.Infof("++---- %d handleAppend: first:%d last:%d, len:%d, m.Index:%d, lenAppend:%d", r.id, r.RaftLog.FirstIndex, r.RaftLog.LastIndex(), len(r.RaftLog.entries), m.Index, len(m.Entries))
+	// // log.Infof("***commit:%d", r.RaftLog.committed)
+	// // log.Infof("***applied:%d", r.RaftLog.applied)
+	// //3.2 取接收者的log[prevLogIndex]看能否和prevLogTerm能匹配上
+	// logTerm, err := r.RaftLog.Term(m.Index)
+	// log.Infof("++---- %d handleAppend: logTerm:%d, m.LogTerm:%d", r.id, logTerm, m.LogTerm)
+	// if err != nil {
+	// 	log.Infof("***panic: Term:%d", m.Index)
+	// 	panic(err)
+	// }
+	// //不能匹配：return false
+	// if logTerm != m.LogTerm {
+	// 	// log.Infof("&&&3: sendAppenResponse:")
+	// 	// log.Infof("++---- %d handleAppend: logTerm:%d, m.LogTerm:%d", r.id, logTerm, m.LogTerm)
+	// 	r.sendAppendResponse(m.From, false, None, lastLogIndex+1)
+	// 	return
+	// } else {
+	//可以匹配上
+	if len(m.Entries) > 0 {
+		if len(r.RaftLog.entries) == 0 {
+			r.RaftLog.apppendNewEntries(m.Entries)
+		} else {
+			//4.如果已经存在的条目和新条目有冲突(索引相同，任期不同)，则截断后续条目并删除
+			conflict, index := r.RaftLog.appendConflict(m.Entries)
+			if conflict {
+				r.RaftLog.deleteConflictEntries(index)
+			}
+			//5.删除重复的日志并追加新日志条目
+			_, ents := r.RaftLog.deleteRepeatEntries(m.Entries)
+			if len(ents) > 0 {
+				r.RaftLog.apppendNewEntries(ents)
+			}
+		}
 
-	log.Infof("++---- %d handleAppend: first:%d last:%d, len:%d, m.Index:%d, lenAppend:%d", r.id, r.RaftLog.FirstIndex, r.RaftLog.LastIndex(), len(r.RaftLog.entries), m.Index, len(m.Entries))
-	// log.Infof("***commit:%d", r.RaftLog.committed)
-	// log.Infof("***applied:%d", r.RaftLog.applied)
-	//3.2 取接收者的log[prevLogIndex]看能否和prevLogTerm能匹配上
-	logTerm, err := r.RaftLog.Term(m.Index)
-	log.Infof("++---- %d handleAppend: logTerm:%d, m.LogTerm:%d", r.id, logTerm, m.LogTerm)
+	}
+	//6.更新committed
+	//如果leader的Commit大于接收者的committed，则取leaderCommit和lastLogIndex的最小值作为更新
+	if m.Commit > r.RaftLog.committed {
+		if lastEntIndex > r.RaftLog.FirstIndex {
+			r.RaftLog.committed = min(m.Commit, lastEntIndex)
+		}
+	}
+	last := r.RaftLog.LastIndex()
+	// log.Infof("handleApp:%d,len:%d,first:%d,last:%d", r.id, len(r.RaftLog.entries), r.RaftLog.FirstIndex, last)
+	lastTerm, err := r.RaftLog.Term(last)
 	if err != nil {
-		log.Infof("***panic: Term:%d", m.Index)
 		panic(err)
 	}
-	//不能匹配：return false
-	if logTerm != m.LogTerm {
-		// log.Infof("&&&3: sendAppenResponse:")
-		// log.Infof("++---- %d handleAppend: logTerm:%d, m.LogTerm:%d", r.id, logTerm, m.LogTerm)
-		r.sendAppendResponse(m.From, false, None, lastLogIndex+1)
-		return
-	} else {
-		//可以匹配上
-		if len(m.Entries) > 0 {
-			if len(r.RaftLog.entries) == 0 {
-				r.RaftLog.apppendNewEntries(m.Entries)
-			} else {
-				//4.如果已经存在的条目和新条目有冲突(索引相同，任期不同)，则截断后续条目并删除
-				conflict, index := r.RaftLog.appendConflict(m.Entries)
-				if conflict {
-					r.RaftLog.deleteConflictEntries(index)
-				}
-				//5.删除重复的日志并追加新日志条目
-				_, ents := r.RaftLog.deleteRepeatEntries(m.Entries)
-				// for _, entry := range ents {
-				// 	if entry.Index == 0 {
-				// 		panic("1.handleappendresponse: entry Index==0")
-				// 	}
-				// }
-				if len(ents) > 0 {
-					r.RaftLog.apppendNewEntries(ents)
-				}
-			}
-
-		}
-		//6.更新committed
-		//如果leader的Commit大于接收者的committed，则取leaderCommit和lastLogIndex的最小值作为更新
-		if m.Commit > r.RaftLog.committed {
-			r.RaftLog.committed = min(m.Commit, m.Index+uint64(len(m.Entries)))
-		}
-		last := r.RaftLog.LastIndex()
-		// log.Infof("handleApp:%d,len:%d,first:%d,last:%d", r.id, len(r.RaftLog.entries), r.RaftLog.FirstIndex, last)
-		lastTerm, _ := r.RaftLog.Term(last)
-		log.Infof("&&&4: %d sendAppenResponse:", r.id)
-		r.sendAppendResponse(m.From, true, lastTerm, last)
-	}
+	log.Infof("&&&4: %d sendAppenResponse:", r.id)
+	r.sendAppendResponse(m.From, true, lastTerm, last)
+	// }
 }
 
 //handleAppendEntriesResponse by leader
@@ -903,11 +906,6 @@ func (r *Raft) appendEntries(entries []*pb.Entry) {
 		log.Infof("*-- %d Propose appendEntries: , index: %d ,State:%s", r.id, entry.Index, r.State)
 	}
 	//2.添加entry到日志条目
-	// for _, entry := range ent {
-	// 	if entry.Index == 0 {
-	// 		panic("2.append: entry Index==0")
-	// 	}
-	// }
 	if len(ent) > 0 {
 		r.RaftLog.apppendNewEntries(ent)
 	}
@@ -932,10 +930,11 @@ func (r *Raft) sendSnapshot(to uint64) {
 	log.Infof("***+++ %d sendSnapshot: to %d", r.id, to)
 	snapshot, err := r.RaftLog.storage.Snapshot()
 	if err != nil {
-		log.Infof("%d sendSnapshot:fail", r.id)
+		log.Infof("%d sendSnapshot:failed", r.id)
 		return
 	}
 	msg := pb.Message{
+		MsgType:  pb.MessageType_MsgSnapshot,
 		To:       to,
 		From:     r.id,
 		Term:     r.Term,
