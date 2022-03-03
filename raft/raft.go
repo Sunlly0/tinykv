@@ -234,6 +234,26 @@ func (r *Raft) getHardState() pb.HardState {
 	return hardState
 }
 
+//3a using in transferleader by Sunlly
+func (r *Raft) sendTimeoutNow(to uint64) {
+	msg := pb.Message{
+		MsgType: pb.MessageType_MsgTimeoutNow,
+		To:      to,
+		From:    r.id,
+	}
+	r.msgs = append(r.msgs, msg)
+	// msg := pb.Message{
+	// 	MsgType: pb.MessageType_MsgAppendResponse,
+	// 	To:      to,
+	// 	From:    r.id,
+	// 	Term:    r.Term,
+	// 	Reject:  !success,
+	// 	LogTerm: logTerm,
+	// 	Index:   logIndex,
+	// }
+	// r.msgs = append(r.msgs, msg)
+}
+
 // sendAppend sends an append RPC with new entries (if any) and the
 // current commit index to the given peer. Returns true if a message was sent.
 func (r *Raft) sendAppend(to uint64) bool {
@@ -431,7 +451,7 @@ func (r *Raft) becomeCandidate() {
 	r.votes[r.id] = true
 	r.VotedFor++
 
-	// log.Infof("++ %d becomeCadidate", r.id)
+	log.Infof("++ %d becomeCadidate", r.id)
 	//根据测试逻辑，becomeCandidate中只做状态修改，不发送选举消息
 }
 
@@ -458,6 +478,7 @@ func (r *Raft) becomeLeader() {
 		r.resetTimeout()
 		r.State = StateLeader
 		r.Lead = r.id
+		r.leadTransferee = None
 	}
 	//2.对于leader，会维护每个节点的日志状态，初始化Next为lastLogIndex+1
 	lastLogIndex := r.RaftLog.LastIndex()
@@ -529,7 +550,14 @@ func (r *Raft) Step(m pb.Message) error {
 		case pb.MessageType_MsgHeartbeatResponse:
 			//2 extra
 		case pb.MessageType_MsgTransferLeader:
+			if r.Lead != None {
+				m.To = r.Lead
+				r.msgs = append(r.msgs, m)
+			}
 		case pb.MessageType_MsgTimeoutNow:
+			if _, ok := r.Prs[r.id]; ok {
+				r.Step(pb.Message{MsgType: pb.MessageType_MsgHup})
+			}
 		}
 
 	case StateCandidate:
@@ -558,6 +586,10 @@ func (r *Raft) Step(m pb.Message) error {
 		case pb.MessageType_MsgHeartbeatResponse:
 			//2 extra
 		case pb.MessageType_MsgTransferLeader:
+			if r.Lead != None {
+				m.To = r.Lead
+				r.msgs = append(r.msgs, m)
+			}
 		case pb.MessageType_MsgTimeoutNow:
 		}
 
@@ -573,7 +605,10 @@ func (r *Raft) Step(m pb.Message) error {
 				}
 			}
 		case pb.MessageType_MsgPropose:
-			r.appendEntries(m.Entries)
+			if r.leadTransferee == None {
+				r.appendEntries(m.Entries)
+			}
+
 		case pb.MessageType_MsgAppend:
 			r.handleAppendEntries(m)
 		case pb.MessageType_MsgAppendResponse:
@@ -589,6 +624,7 @@ func (r *Raft) Step(m pb.Message) error {
 			r.handleHeartbeatResponse(m)
 			//2 extra
 		case pb.MessageType_MsgTransferLeader:
+			r.handleTransferLeader(m)
 		case pb.MessageType_MsgTimeoutNow:
 		}
 	}
@@ -701,7 +737,7 @@ func (r *Raft) handleAppendEntries(m pb.Message) {
 	//6.更新committed
 	//如果leader的Commit大于接收者的committed，则取leaderCommit和lastLogIndex的最小值作为更新
 	if m.Commit > r.RaftLog.committed {
-		if lastEntIndex > r.RaftLog.FirstIndex {
+		if lastEntIndex >= r.RaftLog.FirstIndex {
 			r.RaftLog.committed = min(m.Commit, lastEntIndex)
 		}
 	}
@@ -750,6 +786,10 @@ func (r *Raft) handleAppendEntriesResponse(m pb.Message) {
 			//Q:updateCommit的作用是啥？
 			//A:更新leader的committed，并通知跟随者更新
 			r.updateCommit()
+		}
+
+		if r.leadTransferee == m.From {
+			r.Step(pb.Message{MsgType: pb.MessageType_MsgTransferLeader, From: m.From, To: r.id})
 		}
 	}
 }
@@ -976,12 +1016,46 @@ func (r *Raft) handleSnapshot(m pb.Message) {
 	r.sendAppendResponse(m.From, true, None, r.RaftLog.LastIndex())
 }
 
+//3a by Sunlly
+func (r *Raft) handleTransferLeader(m pb.Message) {
+	//1.检查leader是否能进行本次转移
+	//如果目前有其他节点在转移，则忽略本次消息
+	log.Infof("%d handleTransferleader: to %d, leadTransferee:%d", r.id, m.From, r.leadTransferee)
+	// if r.leadTransferee != None && r.leadTransferee != m.From {
+	// 	return
+	// }
+	if _, ok := r.Prs[m.From]; ok {
+		r.leadTransferee = m.From
+		//2.检查目标节点的日志新旧，如果新则继续，如果旧则发append同步
+		if r.Prs[m.From].Match != r.RaftLog.LastIndex() {
+			r.sendAppend(m.From)
+			return
+		}
+		//3.发送timeoueNow消息，使被转移节点触发选举，此刻一定能当选
+		r.resetTimeout()
+		r.sendTimeoutNow(m.From)
+	}
+}
+
 // addNode add a new node to raft group
 func (r *Raft) addNode(id uint64) {
 	// Your Code Here (3A).
+	r.Prs[id] = &Progress{Next: 0}
+	r.PendingConfIndex = None
 }
 
 // removeNode remove a node from raft group
 func (r *Raft) removeNode(id uint64) {
 	// Your Code Here (3A).
+	//1.删除自己
+
+	//2.删除其他节点
+	if _, ok := r.Prs[id]; ok {
+		delete(r.Prs, id)
+		//2.1如果自己的状态是领导者，需要验证是否在删除节点后有可提交的日志
+		if r.State == StateLeader {
+			r.updateCommit()
+		}
+	}
+	r.PendingConfIndex = None
 }
