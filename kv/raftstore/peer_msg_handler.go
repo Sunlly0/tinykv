@@ -241,6 +241,7 @@ func (d *peerMsgHandler) processAdminRequest(entry *eraftpb.Entry, msg *raft_cmd
 			d.ScheduleCompactLog(d.peerStorage.truncatedIndex())
 		}
 	}
+
 }
 
 //by Sunlly
@@ -474,6 +475,7 @@ func (d *peerMsgHandler) proposeAdminRequest(msg *raft_cmdpb.RaftCmdRequest, cb 
 		})
 	case raft_cmdpb.AdminCmdType_ChangePeer:
 		//每个节点都执行，用confchange消息的方式提议
+		log.Infof("%d propose ChangePeer:", d.PeerId())
 		// if d.RaftGroup.Raft.PendingConfIndex > d.peerStorage.AppliedIndex() {
 		// 	return
 		// }

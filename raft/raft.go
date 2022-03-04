@@ -1040,7 +1040,6 @@ func (r *Raft) handleTransferLeader(m pb.Message) {
 // addNode add a new node to raft group
 func (r *Raft) addNode(id uint64) {
 	// Your Code Here (3A).
-
 	if _, ok := r.Prs[id]; !ok {
 		log.Infof("%d addNode%d", r.id, id)
 		r.Prs[id] = &Progress{Next: 0}

@@ -104,7 +104,6 @@ func (l *RaftLog) maybeCompact() {
 			l.entries = l.entries[truncatedIndex-l.FirstIndex:]
 			l.FirstIndex = truncatedIndex
 		}
-
 	}
 }
 
