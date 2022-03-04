@@ -113,10 +113,16 @@ func (d *peerMsgHandler) handleProposal(entry *eraftpb.Entry, handle func(*propo
 //用于handleRaftReady中应用entry中的命令请求 by Sunlly
 func (d *peerMsgHandler) process(entry *eraftpb.Entry, wb *engine_util.WriteBatch) {
 	if entry.EntryType == eraftpb.EntryType_EntryConfChange {
-		// d.processConfRequest(entry, wb)
+		cc := &eraftpb.ConfChange{}
+		err := cc.Unmarshal(entry.Data)
+		if err != nil {
+			panic(err)
+		}
+		d.processConfRequest(entry, cc, wb)
+
 		return
 	}
-	msg := new(raft_cmdpb.RaftCmdRequest)
+	msg := &raft_cmdpb.RaftCmdRequest{}
 	if err := msg.Unmarshal(entry.Data); err != nil {
 		panic(err)
 	}
@@ -125,6 +131,28 @@ func (d *peerMsgHandler) process(entry *eraftpb.Entry, wb *engine_util.WriteBatc
 	} else if msg.AdminRequest != nil {
 		d.processAdminRequest(entry, msg, wb)
 	}
+}
+
+func (d *peerMsgHandler) processConfChange(entry *eraftpb.Entry, cc *eraftpb.ConfChange, wb *engine_util.WriteBatch) {
+	msg := &raft_cmdpb.RaftCmdRequest{}
+	err := msg.Unmarshal(cc.Context)
+	if err != nil {
+		panic(err)
+	}
+	//1.使用util.CheckRegionEpoch判断配置是否落后，否则继续
+	region := d.Region()
+	err = util.CheckRegionEpoch(msg, region, true)
+	if err != nil {
+		panic(err)
+	}
+	//2.依据changetype(addnode,removenode)做不同的执行
+	switch cc.ChangeType {
+	case eraftpb.ConfChangeType_AddNode:
+		peer := msg.AdminRequest.ChangePeer.Peer
+		region.Peers = append(region.Peers, peer)
+	case eraftpb.ConfChangeType_RemoveNode:
+	}
+
 }
 
 //2c 快照 by Sunlly
@@ -365,6 +393,34 @@ func (d *peerMsgHandler) proposeAdminRequest(msg *raft_cmdpb.RaftCmdRequest, cb 
 			panic(err)
 		}
 		d.RaftGroup.Propose(data)
+	case raft_cmdpb.AdminCmdType_TransferLeader:
+		//只需要leader一个节点执行，所以不用提议
+		d.RaftGroup.TransferLeader(req.TransferLeader.Peer.Id)
+		cb.Done(&raft_cmdpb.RaftCmdResponse{
+			Header: &raft_cmdpb.RaftResponseHeader{},
+			AdminResponse: &raft_cmdpb.AdminResponse{
+				CmdType:        raft_cmdpb.AdminCmdType_TransferLeader,
+				TransferLeader: &raft_cmdpb.TransferLeaderResponse{},
+			},
+		})
+	case raft_cmdpb.AdminCmdType_ChangePeer:
+		//每个节点都执行，用confchange消息的方式提议
+		// if d.RaftGroup.Raft.PendingConfIndex > d.peerStorage.AppliedIndex() {
+		// 	return
+		// }
+		context, err := msg.Marshal()
+		if err != nil {
+			panic(err)
+		}
+		//包装消息,附带chengeType(add/remove)和节点信息
+		cc := eraftpb.ConfChange{
+			ChangeType: msg.AdminRequest.ChangePeer.ChangeType,
+			NodeId:     msg.AdminRequest.ChangePeer.Peer.Id,
+			Context:    context,
+		}
+		proposal := &proposal{index: d.nextProposalIndex(), term: d.Term(), cb: cb}
+		d.proposals = append(d.proposals, proposal)
+		d.RaftGroup.ProposeConfChange(cc)
 	}
 }
 
