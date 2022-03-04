@@ -1040,17 +1040,21 @@ func (r *Raft) handleTransferLeader(m pb.Message) {
 // addNode add a new node to raft group
 func (r *Raft) addNode(id uint64) {
 	// Your Code Here (3A).
-	r.Prs[id] = &Progress{Next: 0}
-	r.PendingConfIndex = None
+
+	if _, ok := r.Prs[id]; !ok {
+		log.Infof("%d addNode%d", r.id, id)
+		r.Prs[id] = &Progress{Next: 0}
+		r.PendingConfIndex = None
+	}
 }
 
 // removeNode remove a node from raft group
 func (r *Raft) removeNode(id uint64) {
 	// Your Code Here (3A).
 	//1.删除自己
-
 	//2.删除其他节点
 	if _, ok := r.Prs[id]; ok {
+		log.Infof("%d removeNode%d", r.id, id)
 		delete(r.Prs, id)
 		//2.1如果自己的状态是领导者，需要验证是否在删除节点后有可提交的日志
 		if r.State == StateLeader {

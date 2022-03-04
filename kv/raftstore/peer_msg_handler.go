@@ -41,7 +41,17 @@ func newPeerMsgHandler(peer *peer, ctx *GlobalContext) *peerMsgHandler {
 	}
 }
 
-//extract key from req by Sunlly
+//extra func by Sunlly
+func isPeerExist(region *metapb.Region, id uint64) bool {
+	for _, p := range region.Peers {
+		if p.Id == id {
+			return true
+		}
+	}
+	return false
+}
+
+//extra key from req by Sunlly
 func (d *peerMsgHandler) getRequestKey(req *raft_cmdpb.Request) []byte {
 	var key []byte
 	switch req.CmdType {
@@ -118,8 +128,7 @@ func (d *peerMsgHandler) process(entry *eraftpb.Entry, wb *engine_util.WriteBatc
 		if err != nil {
 			panic(err)
 		}
-		d.processConfRequest(entry, cc, wb)
-
+		d.processConfChange(entry, cc, wb)
 		return
 	}
 	msg := &raft_cmdpb.RaftCmdRequest{}
@@ -133,6 +142,7 @@ func (d *peerMsgHandler) process(entry *eraftpb.Entry, wb *engine_util.WriteBatc
 	}
 }
 
+//3b by Sunlly0
 func (d *peerMsgHandler) processConfChange(entry *eraftpb.Entry, cc *eraftpb.ConfChange, wb *engine_util.WriteBatch) {
 	msg := &raft_cmdpb.RaftCmdRequest{}
 	err := msg.Unmarshal(cc.Context)
@@ -148,9 +158,68 @@ func (d *peerMsgHandler) processConfChange(entry *eraftpb.Entry, cc *eraftpb.Con
 	//2.依据changetype(addnode,removenode)做不同的执行
 	switch cc.ChangeType {
 	case eraftpb.ConfChangeType_AddNode:
-		peer := msg.AdminRequest.ChangePeer.Peer
-		region.Peers = append(region.Peers, peer)
+		//3.对于addnode，为region增加peer，并持久化region
+		//Q:为啥要做这些操作？
+		//为避免重复添加，应该在添加前判断该peer是否已经在region中
+		if !isPeerExist(region, cc.NodeId) {
+			//将peer添加到region
+			peer := msg.AdminRequest.ChangePeer.Peer
+			region.Peers = append(region.Peers, peer)
+			//ConfVer版本号++
+			region.RegionEpoch.ConfVer++
+			//持久化region信息（kvdb）
+			meta.WriteRegionState(wb, region, rspb.PeerState_Normal)
+			//更新storemeta中的region
+			// storeMeta := d.ctx.storeMeta
+			// storeMeta.Lock()
+			// storeMeta.regions[region.Id] = region
+			// storeMeta.Unlock()
+			//为Cache增加该peer
+			d.insertPeerCache(peer)
+			d.RaftGroup.ApplyConfChange(*cc)
+		}
+
 	case eraftpb.ConfChangeType_RemoveNode:
+		//4.对于removenode
+		//4.1 如果待删除的节点是自己，则调用destroyPeer，其他不用管
+		if cc.NodeId == d.Meta.Id {
+			d.destroyPeer()
+			return
+		}
+		//4.2 删除的其他节点
+		if isPeerExist(region, cc.NodeId) {
+			for i, p := range region.Peers {
+				if p.Id == cc.NodeId {
+					region.Peers = append(region.Peers[:i], region.Peers[i+1:]...)
+					break
+				}
+			}
+			region.RegionEpoch.ConfVer++
+			meta.WriteRegionState(wb, region, rspb.PeerState_Normal)
+			// storeMeta := d.ctx.storeMeta
+			// storeMeta.Lock()
+			// storeMeta.regions[region.Id] = region
+			// storeMeta.Unlock()
+			d.removePeerCache(cc.NodeId)
+			d.RaftGroup.ApplyConfChange(*cc)
+		}
+
+	}
+	//5.在下层的raft中应用该ConfChange，调用addnode和removenode函数
+	// d.RaftGroup.ApplyConfChange(*cc)
+	//6.回复callback
+	//Q:是否需要对重复的process做callback?
+	d.handleProposal(entry, func(p *proposal) {
+		p.cb.Done(&raft_cmdpb.RaftCmdResponse{
+			Header: &raft_cmdpb.RaftResponseHeader{},
+			AdminResponse: &raft_cmdpb.AdminResponse{
+				CmdType:    raft_cmdpb.AdminCmdType_ChangePeer,
+				ChangePeer: &raft_cmdpb.ChangePeerResponse{},
+			},
+		})
+	})
+	if d.IsLeader() {
+		d.HeartbeatScheduler(d.ctx.schedulerTaskSender)
 	}
 
 }
