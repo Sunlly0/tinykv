@@ -362,6 +362,7 @@ func (ps *PeerStorage) ApplySnapshot(snapshot *eraftpb.Snapshot, kvWB *engine_ut
 	// and send RegionTaskApply task to region worker through ps.regionSched, also remember call ps.clearMeta
 	// and ps.clearExtraData to delete stale data
 	// Your Code Here (2C).
+	log.Infof("applySnapshot: From Index %d", snapshot.Metadata.Index)
 	//1.清除旧的meta数据
 	if ps.isInitialized() {
 		ps.clearMeta(kvWB, raftWB)
@@ -370,17 +371,25 @@ func (ps *PeerStorage) ApplySnapshot(snapshot *eraftpb.Snapshot, kvWB *engine_ut
 	//2.更新持久化状态
 	ps.raftState.LastIndex = snapshot.Metadata.Index
 	ps.raftState.LastTerm = snapshot.Metadata.Term
+	ps.raftState.HardState.Commit = snapshot.Metadata.Index
+	ps.raftState.HardState.Term = snapshot.Metadata.Term
+	ps.raftState.HardState.Vote = 0
 	ps.applyState.AppliedIndex = snapshot.Metadata.Index
 	ps.applyState.TruncatedState.Index = snapshot.Metadata.Index
 	ps.applyState.TruncatedState.Term = snapshot.Metadata.Term
 
 	ps.snapState.StateType = snap.SnapState_Applying
-	//Q:为啥此处用snapData.Region.Id?
+
+	meta.WriteRegionState(kvWB, snapData.Region, rspb.PeerState_Normal)
+	kvWB.WriteToDB(ps.Engines.Kv)
 	kvWB.SetMeta(meta.ApplyStateKey(snapData.Region.Id), ps.applyState)
+	raftWB.SetMeta(meta.RaftStateKey(snapData.Region.Id), ps.raftState)
 	//3.向regionWorker发消息
 	ch := make(chan bool, 1)
+	//Q:为啥此处用snapData.Region.Id?
 	ps.regionSched <- &runner.RegionTaskApply{
-		RegionId: ps.region.Id,
+		// RegionId: ps.region.Id,
+		RegionId: snapData.Region.Id,
 		Notifier: ch,
 		SnapMeta: snapshot.Metadata,
 		StartKey: snapData.Region.StartKey,
@@ -392,7 +401,6 @@ func (ps *PeerStorage) ApplySnapshot(snapshot *eraftpb.Snapshot, kvWB *engine_ut
 		PrevRegion: ps.region,
 		Region:     snapData.Region,
 	}
-	meta.WriteRegionState(kvWB, snapData.Region, rspb.PeerState_Normal)
 	return result, nil
 }
 
@@ -415,6 +423,7 @@ func (ps *PeerStorage) SaveReadyState(ready *raft.Ready) (*ApplySnapResult, erro
 			panic(err)
 		}
 		kvWB.WriteToDB(ps.Engines.Kv)
+		raftWB.WriteToDB(ps.Engines.Raft)
 	}
 
 	//2.持久化日志、持久化RaftLocalState(HardState，LastLogIndex)

@@ -122,6 +122,7 @@ func (rn *RawNode) ProposeConfChange(cc pb.ConfChange) error {
 	if err != nil {
 		return err
 	}
+	log.Infof("%d rawnode:ProposeConfChange", rn.Raft.id)
 	ent := pb.Entry{EntryType: pb.EntryType_EntryConfChange, Data: data}
 	return rn.Raft.Step(pb.Message{
 		MsgType: pb.MessageType_MsgPropose,
@@ -200,7 +201,7 @@ func (rn *RawNode) HasReady() bool {
 	r := rn.Raft
 	//1. softState和hardState发生变化
 	if !IsEmptyHardState(r.getHardState()) && !isHardStateEqual(rn.preHardState, r.getHardState()) {
-		// log.Infof("--- hasReady: %d hardState changed", rn.GetRaftId())
+		log.Infof("--- hasReady: %d hardState changed", rn.GetRaftId())
 		return true
 	}
 
@@ -211,7 +212,7 @@ func (rn *RawNode) HasReady() bool {
 
 	//2.unstable entries和uncommit entries存在
 	if len(r.RaftLog.unstableEntries()) > 0 || len(r.RaftLog.nextEnts()) > 0 {
-		// log.Infof("--- hasReady: %d has entries to stable or apply commit!", rn.GetRaftId())
+		log.Infof("--- hasReady: %d has entries to stable or apply commit!", rn.GetRaftId())
 		return true
 	}
 	//3.有msgs需要发送

@@ -408,7 +408,7 @@ func (r *Raft) tick() {
 		//利用随机选举时间进行判断
 		if r.electionElapsed >= r.randomElectionTimeout {
 			r.resetTimeout()
-			// log.Infof("---+ tick: %d Timeout ", r.id)
+			log.Infof("---+ tick: %d Timeout ", r.id)
 			r.Step(pb.Message{MsgType: pb.MessageType_MsgHup})
 		}
 		//2.2 Leader心跳超时，处理：更新心跳并bcast心跳给所有追随者
@@ -591,12 +591,21 @@ func (r *Raft) Step(m pb.Message) error {
 				r.msgs = append(r.msgs, m)
 			}
 		case pb.MessageType_MsgTimeoutNow:
+			if _, ok := r.Prs[r.id]; ok {
+				r.Step(pb.Message{MsgType: pb.MessageType_MsgHup})
+			}
 		}
 
 	case StateLeader:
 		switch m.MsgType {
 		//10 basic
 		case pb.MessageType_MsgHup:
+			r.becomeCandidate()
+			if len(r.Prs) == 1 {
+				r.becomeLeader()
+			} else {
+				r.bcastRequestVote()
+			}
 		case pb.MessageType_MsgBeat:
 			//bcast Heartbeat by Leader:
 			for peer := range r.Prs {
@@ -626,6 +635,9 @@ func (r *Raft) Step(m pb.Message) error {
 		case pb.MessageType_MsgTransferLeader:
 			r.handleTransferLeader(m)
 		case pb.MessageType_MsgTimeoutNow:
+			if _, ok := r.Prs[r.id]; ok {
+				r.Step(pb.Message{MsgType: pb.MessageType_MsgHup})
+			}
 		}
 	}
 	return nil
@@ -637,7 +649,7 @@ func (r *Raft) handleAppendEntries(m pb.Message) {
 	// Your Code Here (2A).
 	// 1.消息中的任期过期，return false
 	if m.Term < r.Term {
-		// log.Infof("&&&1: %d sendAppendResponse:", r.id)
+		log.Infof("&&&1: %d sendAppendResponse:", r.id)
 		// log.Infof("++---- %d handleAppend: r.Term:%d , m.Term:%d,", r.id, r.Term, m.Term)
 		r.sendAppendResponse(m.From, false, None, None)
 		return
@@ -655,7 +667,7 @@ func (r *Raft) handleAppendEntries(m pb.Message) {
 	if m.Term == r.Term && r.Lead == None {
 		r.becomeFollower(m.Term, m.From)
 	}
-	// log.Infof("--+ %d handleAppend, Lead: %d", r.id, r.Lead)
+	log.Infof("--+ %d handleAppend, Lead: %d", r.id, r.Lead)
 
 	//3.如果接收者没有能匹配上的leader的日志条目,即prevLogIndex和prevLogTerm的索引任期一样的条目
 	//m.Index即prevLogIndex,m.LogTerm即prevLogTerm
@@ -684,7 +696,7 @@ func (r *Raft) handleAppendEntries(m pb.Message) {
 		}
 		//不能匹配：return false
 		if logTerm != m.LogTerm {
-			// log.Infof("&&&3: sendAppenResponse:")
+			log.Infof("&&&3: sendAppenResponse:")
 			// log.Infof("++---- %d handleAppend: logTerm:%d, m.LogTerm:%d", r.id, logTerm, m.LogTerm)
 			r.sendAppendResponse(m.From, false, None, lastLogIndex+1)
 			return
@@ -699,23 +711,7 @@ func (r *Raft) handleAppendEntries(m pb.Message) {
 			m.Entries = m.Entries[r.RaftLog.FirstIndex-(m.Index+1):]
 		}
 	}
-	// log.Infof("++---- %d handleAppend: first:%d last:%d, len:%d, m.Index:%d, lenAppend:%d", r.id, r.RaftLog.FirstIndex, r.RaftLog.LastIndex(), len(r.RaftLog.entries), m.Index, len(m.Entries))
-	// // log.Infof("***commit:%d", r.RaftLog.committed)
-	// // log.Infof("***applied:%d", r.RaftLog.applied)
-	// //3.2 取接收者的log[prevLogIndex]看能否和prevLogTerm能匹配上
-	// logTerm, err := r.RaftLog.Term(m.Index)
-	// log.Infof("++---- %d handleAppend: logTerm:%d, m.LogTerm:%d", r.id, logTerm, m.LogTerm)
-	// if err != nil {
-	// 	log.Infof("***panic: Term:%d", m.Index)
-	// 	panic(err)
-	// }
-	// //不能匹配：return false
-	// if logTerm != m.LogTerm {
-	// 	// log.Infof("&&&3: sendAppenResponse:")
-	// 	// log.Infof("++---- %d handleAppend: logTerm:%d, m.LogTerm:%d", r.id, logTerm, m.LogTerm)
-	// 	r.sendAppendResponse(m.From, false, None, lastLogIndex+1)
-	// 	return
-	// } else {
+
 	//可以匹配上
 	if len(m.Entries) > 0 {
 		if len(r.RaftLog.entries) == 0 {
@@ -837,6 +833,7 @@ func (r *Raft) handleHeartbeat(m pb.Message) {
 		r.sendHeartbeatResponse(m.From, true)
 		return
 	}
+	// log.Infof("%d --+handleHeartbeat: from %d", r.id, m.From)
 	//2.任期没有过期，重置timeout状态，维护leader的领导
 	r.becomeFollower(m.Term, m.From)
 	r.sendHeartbeatResponse(m.From, false)
@@ -863,7 +860,7 @@ func (r *Raft) handleHeartbeatResponse(m pb.Message) {
 // handleRequestVote by follower
 func (r *Raft) handleRequestVote(m pb.Message) {
 	// 按Raft论文的算法描述来
-	// log.Infof("--+ %d handleRequestVote: state: %d, Term: %d", r.id, r.State, r.Term)
+	log.Infof("--+ %d handleRequestVote: state: %d, Term: %d", r.id, r.State, r.Term)
 	//1.任期是否过期，return false
 	if m.Term < r.Term {
 		r.sendRequestVoteResponse(m.From, false)
@@ -1020,18 +1017,27 @@ func (r *Raft) handleSnapshot(m pb.Message) {
 func (r *Raft) handleTransferLeader(m pb.Message) {
 	//1.检查leader是否能进行本次转移
 	//如果目前有其他节点在转移，则忽略本次消息
-	log.Infof("%d handleTransferleader: to %d, leadTransferee:%d", r.id, m.From, r.leadTransferee)
+
 	// if r.leadTransferee != None && r.leadTransferee != m.From {
 	// 	return
 	// }
+	//1.1 如果转移对象是自己，直接处理timeout
+	if r.leadTransferee == r.id {
+		log.Infof("%d handleTransferleader, transfer to self", r.id)
+		r.Step(pb.Message{MsgType: pb.MessageType_MsgTimeoutNow})
+		return
+	}
+
 	if _, ok := r.Prs[m.From]; ok {
 		r.leadTransferee = m.From
 		//2.检查目标节点的日志新旧，如果新则继续，如果旧则发append同步
 		if r.Prs[m.From].Match != r.RaftLog.LastIndex() {
+			log.Infof("%d handleTransferleader, not match: to %d, leadTransferee:%d", r.id, m.From, r.leadTransferee)
 			r.sendAppend(m.From)
 			return
 		}
 		//3.发送timeoueNow消息，使被转移节点触发选举，此刻一定能当选
+		log.Infof("%d handleTransferleader, match: to %d, leadTransferee:%d", r.id, m.From, r.leadTransferee)
 		r.resetTimeout()
 		r.sendTimeoutNow(m.From)
 	}
@@ -1041,7 +1047,7 @@ func (r *Raft) handleTransferLeader(m pb.Message) {
 func (r *Raft) addNode(id uint64) {
 	// Your Code Here (3A).
 	if _, ok := r.Prs[id]; !ok {
-		log.Infof("%d addNode%d", r.id, id)
+		log.Infof("%d addNode %d", r.id, id)
 		r.Prs[id] = &Progress{Next: 0}
 		r.PendingConfIndex = None
 	}
@@ -1053,7 +1059,7 @@ func (r *Raft) removeNode(id uint64) {
 	//1.删除自己
 	//2.删除其他节点
 	if _, ok := r.Prs[id]; ok {
-		log.Infof("%d removeNode%d", r.id, id)
+		log.Infof("%d removeNode %d", r.id, id)
 		delete(r.Prs, id)
 		//2.1如果自己的状态是领导者，需要验证是否在删除节点后有可提交的日志
 		if r.State == StateLeader {
