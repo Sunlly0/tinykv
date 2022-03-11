@@ -173,10 +173,10 @@ func (d *peerMsgHandler) processConfChange(entry *eraftpb.Entry, cc *eraftpb.Con
 			//持久化region信息（kvdb）
 			meta.WriteRegionState(wb, region, rspb.PeerState_Normal)
 			//更新storemeta中的region
-			// storeMeta := d.ctx.storeMeta
-			// storeMeta.Lock()
-			// storeMeta.regions[region.Id] = region
-			// storeMeta.Unlock()
+			d.ctx.storeMeta.Lock()
+			// d.ctx.storeMeta.regionRanges.ReplaceOrInsert(&regionItem{region: region})
+			d.ctx.storeMeta.regions[region.Id] = region
+			d.ctx.storeMeta.Unlock()
 			//为Cache增加该peer
 			d.insertPeerCache(peer)
 			// d.RaftGroup.ApplyConfChange(*cc)
@@ -201,10 +201,11 @@ func (d *peerMsgHandler) processConfChange(entry *eraftpb.Entry, cc *eraftpb.Con
 			}
 			region.RegionEpoch.ConfVer++
 			meta.WriteRegionState(wb, region, rspb.PeerState_Normal)
-			// storeMeta := d.ctx.storeMeta
-			// storeMeta.Lock()
-			// storeMeta.regions[region.Id] = region
-			// storeMeta.Unlock()
+			//更新storemeta中的region
+			d.ctx.storeMeta.Lock()
+			// d.ctx.storeMeta.regionRanges.ReplaceOrInsert(&regionItem{region: region})
+			d.ctx.storeMeta.regions[region.Id] = region
+			d.ctx.storeMeta.Unlock()
 			d.removePeerCache(cc.NodeId)
 		}
 
@@ -249,18 +250,61 @@ func (d *peerMsgHandler) processAdminRequest(entry *eraftpb.Entry, msg *raft_cmd
 		region := d.Region()
 		err := util.CheckRegionEpoch(msg, region, true)
 		if err != nil {
-			// d.handleProposal(entry,func(p *proposal) {
-			// 	p.cb.Done(err)
-			// })
-			panic(err)
+			if errEpochNotMatching, ok := err.(*util.ErrEpochNotMatch); ok {
+				d.handleProposal(entry, func(p *proposal) {
+					p.cb.Done(ErrResp(errEpochNotMatching))
+				})
+			}
 		}
 		split := req.GetSplit()
 		err2 := util.CheckKeyInRegion(split.SplitKey, region)
 		if err2 != nil {
-			panic(err2)
+			d.handleProposal(entry, func(p *proposal) {
+				p.cb.Done(ErrResp(err))
+			})
 		}
 		//1.生成新region
-		util.CloneMsg()
+		newregion := &metapb.Region{}
+		util.CloneMsg(region, newregion)
+		//2.修改旧分区的key
+		region.EndKey = req.Split.SplitKey
+		region.RegionEpoch.Version++
+		//3.修改新分区的key和peer等信息
+		newregion.Id = req.Split.NewRegionId
+		for i := range newregion.Peers {
+			newregion.Peers[i].Id = req.Split.NewPeerIds[i]
+		}
+		newregion.StartKey = req.Split.SplitKey
+		newregion.RegionEpoch.Version++
+		//4.持久化region信息
+		meta.WriteRegionState(wb, region, rspb.PeerState_Normal)
+		meta.WriteRegionState(wb, newregion, rspb.PeerState_Normal)
+		//5.创建Peer并注册router，发送MsgTypeStart启动peer
+		newpeer, _ := createPeer(d.ctx.store.Id, d.ctx.cfg, d.ctx.regionTaskSender, d.ctx.engine, newregion)
+		d.ctx.router.register(newpeer)
+		d.ctx.router.send(req.Split.NewRegionId, message.Msg{
+			RegionID: req.Split.NewRegionId,
+			Type:     message.MsgTypeStart,
+		})
+		//6.修改storeMeta信息
+		d.ctx.storeMeta.Lock()
+		d.ctx.storeMeta.regionRanges.ReplaceOrInsert(&regionItem{region: region})
+		d.ctx.storeMeta.regionRanges.ReplaceOrInsert(&regionItem{region: newregion})
+		d.ctx.storeMeta.regions[req.Split.NewRegionId] = newregion
+		d.ctx.storeMeta.Unlock()
+		//7. callback回复
+		resp := &raft_cmdpb.RaftCmdResponse{
+			Header: &raft_cmdpb.RaftResponseHeader{},
+			AdminResponse: &raft_cmdpb.AdminResponse{
+				CmdType: raft_cmdpb.AdminCmdType_Split,
+				Split: &raft_cmdpb.SplitResponse{
+					Regions: []*metapb.Region{region, newregion},
+				},
+			},
+		}
+		d.handleProposal(entry, func(p *proposal) {
+			p.cb.Done(resp)
+		})
 	}
 
 }

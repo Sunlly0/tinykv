@@ -381,6 +381,7 @@ func (ps *PeerStorage) ApplySnapshot(snapshot *eraftpb.Snapshot, kvWB *engine_ut
 	ps.snapState.StateType = snap.SnapState_Applying
 
 	meta.WriteRegionState(kvWB, snapData.Region, rspb.PeerState_Normal)
+
 	kvWB.WriteToDB(ps.Engines.Kv)
 	kvWB.SetMeta(meta.ApplyStateKey(snapData.Region.Id), ps.applyState)
 	raftWB.SetMeta(meta.RaftStateKey(snapData.Region.Id), ps.raftState)
