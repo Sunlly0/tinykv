@@ -268,8 +268,12 @@ func (r *Raft) sendAppend(to uint64) bool {
 	}
 
 	nextIndex := r.Prs[to].Next
+
 	//如果不对next==0做判断，此处的prevLogIndex将为负数
 	prevLogIndex := nextIndex - 1
+	log.Infof("****+++ %d &&&6 sendAppend: to %d", r.id, to)
+	log.Infof("prevLogIndex:%d, r.RaftLog.firstIndex:%d", prevLogIndex, r.RaftLog.FirstIndex)
+	log.Infof("r.Prs.Match: %d, r.Prs.Next: %d", r.Prs[to].Match, r.Prs[to].Next)
 	prevLogTerm, err := r.RaftLog.Term(prevLogIndex)
 	if err != nil {
 		if err == ErrCompacted {
@@ -279,6 +283,7 @@ func (r *Raft) sendAppend(to uint64) bool {
 			r.sendSnapshot(to)
 			return false
 		}
+		log.Infof("3b : panic Term")
 		panic(err)
 	}
 	entries := make([]*pb.Entry, 0)
@@ -767,7 +772,9 @@ func (r *Raft) handleAppendEntriesResponse(m pb.Message) {
 		// index := m.Index
 		log.Infof("&&&0: %d handleAppenResponse: Reject, Form:%d", r.id, m.From)
 		log.Infof("+++---- %d handleAR: from: %d ,", r.id, m.From)
-		r.Prs[m.From].Next--
+		if r.Prs[m.From].Next > 0 {
+			r.Prs[m.From].Next--
+		}
 		// log.Infof("***%d commit:%d", r.id, r.RaftLog.committed)
 		// r.Prs[m.From].Next = index
 		r.sendAppend(m.From)
@@ -939,8 +946,17 @@ func (r *Raft) appendEntries(entries []*pb.Entry) {
 	for i, entry := range entries {
 		entry.Term = r.Term
 		entry.Index = lastIndex + uint64(i) + 1
-		ent = append(ent, entry)
+
 		log.Infof("*-- %d Propose appendEntries: , index: %d ,State:%s", r.id, entry.Index, r.State)
+		//3b Confchange 对于ConfChange命令，设置pendingConfIndex，确保当还有ConfChange命令
+		//没有被应用的时候，不能propose新的ChangePeer。
+		if entry.EntryType == pb.EntryType_EntryConfChange {
+			if r.PendingConfIndex != None {
+				continue
+			}
+			r.PendingConfIndex = entry.Index
+		}
+		ent = append(ent, entry)
 	}
 	//2.添加entry到日志条目
 	if len(ent) > 0 {

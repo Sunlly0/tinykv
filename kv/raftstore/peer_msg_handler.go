@@ -149,15 +149,18 @@ func (d *peerMsgHandler) processConfChange(entry *eraftpb.Entry, cc *eraftpb.Con
 	if err != nil {
 		panic(err)
 	}
-
+	log.Infof("%d processConfChange", d.PeerId())
 	//1.使用util.CheckRegionEpoch判断配置是否落后，否则继续
 	region := d.Region()
 	err = util.CheckRegionEpoch(msg, region, true)
 	if err != nil {
+		d.handleProposal(entry, func(p *proposal) {
+			p.cb.Done(ErrResp(err))
+		})
 		panic(err)
-		return
 	}
-	log.Infof("%d processConfChange", d.PeerId())
+	// log.Infof("%d processConfChange", d.PeerId())
+	PrevRegion := region
 	//2.依据changetype(addnode,removenode)做不同的执行
 	switch cc.ChangeType {
 	case eraftpb.ConfChangeType_AddNode:
@@ -174,12 +177,14 @@ func (d *peerMsgHandler) processConfChange(entry *eraftpb.Entry, cc *eraftpb.Con
 			meta.WriteRegionState(wb, region, rspb.PeerState_Normal)
 			//更新storemeta中的region
 			d.ctx.storeMeta.Lock()
-			// d.ctx.storeMeta.regionRanges.ReplaceOrInsert(&regionItem{region: region})
+			d.ctx.storeMeta.regionRanges.Delete(&regionItem{region: PrevRegion})
+			d.ctx.storeMeta.regionRanges.ReplaceOrInsert(&regionItem{region: region})
 			d.ctx.storeMeta.regions[region.Id] = region
 			d.ctx.storeMeta.Unlock()
 			//为Cache增加该peer
 			d.insertPeerCache(peer)
-			// d.RaftGroup.ApplyConfChange(*cc)
+			//5.在下层的raft中应用该ConfChange，调用addnode和removenode函数
+			d.RaftGroup.ApplyConfChange(*cc)
 		}
 
 	case eraftpb.ConfChangeType_RemoveNode:
@@ -199,19 +204,22 @@ func (d *peerMsgHandler) processConfChange(entry *eraftpb.Entry, cc *eraftpb.Con
 					break
 				}
 			}
+			//ConfVer版本号++
 			region.RegionEpoch.ConfVer++
+			//持久化region信息（kvdb）
 			meta.WriteRegionState(wb, region, rspb.PeerState_Normal)
 			//更新storemeta中的region
 			d.ctx.storeMeta.Lock()
-			// d.ctx.storeMeta.regionRanges.ReplaceOrInsert(&regionItem{region: region})
+			d.ctx.storeMeta.regionRanges.Delete(&regionItem{region: PrevRegion})
+			d.ctx.storeMeta.regionRanges.ReplaceOrInsert(&regionItem{region: region})
 			d.ctx.storeMeta.regions[region.Id] = region
 			d.ctx.storeMeta.Unlock()
 			d.removePeerCache(cc.NodeId)
+			//5.在下层的raft中应用该ConfChange，调用addnode和removenode函数
+			d.RaftGroup.ApplyConfChange(*cc)
 		}
 
 	}
-	//5.在下层的raft中应用该ConfChange，调用addnode和removenode函数
-	d.RaftGroup.ApplyConfChange(*cc)
 	//6.回复callback
 	//Q:是否需要对重复的process做callback?
 	d.handleProposal(entry, func(p *proposal) {
@@ -387,17 +395,16 @@ func (d *peerMsgHandler) HandleRaftReady() {
 	if err != nil {
 		panic(err)
 	}
+	//3b ConfChange 将自己的region信息和快照中的region同步
 	if result != nil {
-		// PrevRegion
-		//Q:为何这样处理？
-		// if !reflect.DeepEqual(result.PrevRegion, result.Region) {
-		// 	d.peerStorage.SetRegion(result.Region)
-		// 	storeMeta := d.ctx.storeMeta
-		// 	storeMeta.regions[result.Region.Id] = result.Region
-		// 	storeMeta.regionRanges.Delete(&regionItem{region: result.PrevRegion})
-		// 	storeMeta.regionRanges.ReplaceOrInsert(&regionItem{region: result.Region})
-		// }
+		d.peerStorage.SetRegion(result.Region)
+		d.ctx.storeMeta.Lock()
+		d.ctx.storeMeta.regions[result.Region.Id] = result.Region
+		d.ctx.storeMeta.regionRanges.Delete(&regionItem{region: result.PrevRegion})
+		d.ctx.storeMeta.regionRanges.ReplaceOrInsert(&regionItem{region: result.Region})
+		d.ctx.storeMeta.Unlock()
 	}
+
 	//3.调用d.send方法将Ready中的Messagge发送出去
 	if len(rd.Messages) != 0 {
 		for _, msg := range rd.Messages {
@@ -539,10 +546,10 @@ func (d *peerMsgHandler) proposeAdminRequest(msg *raft_cmdpb.RaftCmdRequest, cb 
 		cb.Done(resp)
 	case raft_cmdpb.AdminCmdType_ChangePeer:
 		//每个节点都执行，用confchange消息的方式提议
-		log.Infof("%d propose ChangePeer:", d.PeerId())
-		// if d.RaftGroup.Raft.PendingConfIndex > d.peerStorage.AppliedIndex() {
-		// 	return
-		// }
+		log.Infof("%d propose ChangePeer: rengion.ConfVer:%d ", d.PeerId(), d.Region().GetRegionEpoch().ConfVer)
+		if d.RaftGroup.Raft.PendingConfIndex > d.peerStorage.AppliedIndex() {
+			return
+		}
 		context, err := msg.Marshal()
 		if err != nil {
 			panic(err)

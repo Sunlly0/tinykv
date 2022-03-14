@@ -378,13 +378,11 @@ func (ps *PeerStorage) ApplySnapshot(snapshot *eraftpb.Snapshot, kvWB *engine_ut
 	ps.applyState.TruncatedState.Index = snapshot.Metadata.Index
 	ps.applyState.TruncatedState.Term = snapshot.Metadata.Term
 
-	ps.snapState.StateType = snap.SnapState_Applying
-
 	meta.WriteRegionState(kvWB, snapData.Region, rspb.PeerState_Normal)
-
-	kvWB.WriteToDB(ps.Engines.Kv)
 	kvWB.SetMeta(meta.ApplyStateKey(snapData.Region.Id), ps.applyState)
 	raftWB.SetMeta(meta.RaftStateKey(snapData.Region.Id), ps.raftState)
+
+	ps.snapState.StateType = snap.SnapState_Applying
 	//3.向regionWorker发消息
 	ch := make(chan bool, 1)
 	//Q:为啥此处用snapData.Region.Id?
@@ -397,6 +395,7 @@ func (ps *PeerStorage) ApplySnapshot(snapshot *eraftpb.Snapshot, kvWB *engine_ut
 		EndKey:   snapData.Region.EndKey,
 	}
 	<-ch
+	ps.snapState.StateType = snap.SnapState_Relax
 
 	result := &ApplySnapResult{
 		PrevRegion: ps.region,
