@@ -160,7 +160,7 @@ func (d *peerMsgHandler) processConfChange(entry *eraftpb.Entry, cc *eraftpb.Con
 		panic(err)
 	}
 	// log.Infof("%d processConfChange", d.PeerId())
-	PrevRegion := region
+	// PrevRegion := region
 	//2.依据changetype(addnode,removenode)做不同的执行
 	switch cc.ChangeType {
 	case eraftpb.ConfChangeType_AddNode:
@@ -177,7 +177,7 @@ func (d *peerMsgHandler) processConfChange(entry *eraftpb.Entry, cc *eraftpb.Con
 			meta.WriteRegionState(wb, region, rspb.PeerState_Normal)
 			//更新storemeta中的region
 			d.ctx.storeMeta.Lock()
-			d.ctx.storeMeta.regionRanges.Delete(&regionItem{region: PrevRegion})
+			// d.ctx.storeMeta.regionRanges.Delete(&regionItem{region: PrevRegion})
 			d.ctx.storeMeta.regionRanges.ReplaceOrInsert(&regionItem{region: region})
 			d.ctx.storeMeta.regions[region.Id] = region
 			d.ctx.storeMeta.Unlock()
@@ -210,7 +210,7 @@ func (d *peerMsgHandler) processConfChange(entry *eraftpb.Entry, cc *eraftpb.Con
 			meta.WriteRegionState(wb, region, rspb.PeerState_Normal)
 			//更新storemeta中的region
 			d.ctx.storeMeta.Lock()
-			d.ctx.storeMeta.regionRanges.Delete(&regionItem{region: PrevRegion})
+			// d.ctx.storeMeta.regionRanges.Delete(&regionItem{region: PrevRegion})
 			d.ctx.storeMeta.regionRanges.ReplaceOrInsert(&regionItem{region: region})
 			d.ctx.storeMeta.regions[region.Id] = region
 			d.ctx.storeMeta.Unlock()
@@ -255,6 +255,7 @@ func (d *peerMsgHandler) processAdminRequest(entry *eraftpb.Entry, msg *raft_cmd
 		}
 	case raft_cmdpb.AdminCmdType_Split:
 		//0.检查region
+		log.Infof("%d process Split:", d.PeerId())
 		region := d.Region()
 		err := util.CheckRegionEpoch(msg, region, true)
 		if err != nil {
@@ -263,15 +264,23 @@ func (d *peerMsgHandler) processAdminRequest(entry *eraftpb.Entry, msg *raft_cmd
 					p.cb.Done(ErrResp(errEpochNotMatching))
 				})
 			}
+			return
 		}
 		split := req.GetSplit()
 		err2 := util.CheckKeyInRegion(split.SplitKey, region)
 		if err2 != nil {
+			log.Infof("Split err: checkkeyInRegion, regionId: %d, startKey: %v, endKey: %v ", region.Id, region.GetStartKey(), region.GetEndKey())
+			log.Infof("--- %s on split with %v", d.Tag, split.SplitKey)
 			d.handleProposal(entry, func(p *proposal) {
-				p.cb.Done(ErrResp(err))
+				p.cb.Done(ErrResp(err2))
 			})
+			return
 		}
 		//1.生成新region
+		log.Infof("*** old region: regionId: %d, startKey: %v, endKey: %v ", region.Id, region.GetStartKey(), region.GetEndKey())
+		log.Infof("--- %s on split with %v", d.Tag, split.SplitKey)
+		log.Infof("*** new region: regionId: %d, startKey: %v, endKey: %v ", req.Split.NewRegionId, split.SplitKey, region.GetEndKey())
+		PrevRegion := region
 		newregion := &metapb.Region{}
 		util.CloneMsg(region, newregion)
 		//2.修改旧分区的key
@@ -296,8 +305,10 @@ func (d *peerMsgHandler) processAdminRequest(entry *eraftpb.Entry, msg *raft_cmd
 		})
 		//6.修改storeMeta信息
 		d.ctx.storeMeta.Lock()
+		d.ctx.storeMeta.regionRanges.Delete(&regionItem{region: PrevRegion})
 		d.ctx.storeMeta.regionRanges.ReplaceOrInsert(&regionItem{region: region})
 		d.ctx.storeMeta.regionRanges.ReplaceOrInsert(&regionItem{region: newregion})
+		d.ctx.storeMeta.regions[region.Id] = region
 		d.ctx.storeMeta.regions[req.Split.NewRegionId] = newregion
 		d.ctx.storeMeta.Unlock()
 		//7. callback回复

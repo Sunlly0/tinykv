@@ -117,11 +117,11 @@ func (ps *PeerStorage) Entries(low, high uint64) ([]eraftpb.Entry, error) {
 			break
 		}
 		nextIndex++
-		log.Infof("ps.Entries:%d,entnum:%d,index:%d", ps.region.Id, i, entry.Index)
+		log.Infof("ps.Entries:regionId: %d,entnum:%d,index:%d", ps.region.Id, i, entry.Index)
 		i++
 		buf = append(buf, entry)
 	}
-	log.Infof("ps.Entries:%d,low:%d,high:%d,buflen:%d", ps.region.Id, low, high, len(buf))
+	log.Infof("ps.Entries:regionId: %d,low:%d,high:%d,buflen:%d", ps.region.Id, low, high, len(buf))
 	// If we get the correct number of entries, returns.
 	if len(buf) == int(high-low) {
 		return buf, nil

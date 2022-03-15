@@ -605,12 +605,12 @@ func (r *Raft) Step(m pb.Message) error {
 		switch m.MsgType {
 		//10 basic
 		case pb.MessageType_MsgHup:
-			r.becomeCandidate()
-			if len(r.Prs) == 1 {
-				r.becomeLeader()
-			} else {
-				r.bcastRequestVote()
-			}
+			// r.becomeCandidate()
+			// if len(r.Prs) == 1 {
+			// 	r.becomeLeader()
+			// } else {
+			// 	r.bcastRequestVote()
+			// }
 		case pb.MessageType_MsgBeat:
 			//bcast Heartbeat by Leader:
 			for peer := range r.Prs {
@@ -640,9 +640,9 @@ func (r *Raft) Step(m pb.Message) error {
 		case pb.MessageType_MsgTransferLeader:
 			r.handleTransferLeader(m)
 		case pb.MessageType_MsgTimeoutNow:
-			if _, ok := r.Prs[r.id]; ok {
-				r.Step(pb.Message{MsgType: pb.MessageType_MsgHup})
-			}
+			// if _, ok := r.Prs[r.id]; ok {
+			// 	r.Step(pb.Message{MsgType: pb.MessageType_MsgHup})
+			// }
 		}
 	}
 	return nil
@@ -1040,7 +1040,7 @@ func (r *Raft) handleTransferLeader(m pb.Message) {
 	//1.1 如果转移对象是自己，直接处理timeout
 	if r.leadTransferee == r.id {
 		log.Infof("%d handleTransferleader, transfer to self", r.id)
-		r.Step(pb.Message{MsgType: pb.MessageType_MsgTimeoutNow})
+		// r.Step(pb.Message{MsgType: pb.MessageType_MsgTimeoutNow})
 		return
 	}
 
@@ -1065,8 +1065,8 @@ func (r *Raft) addNode(id uint64) {
 	if _, ok := r.Prs[id]; !ok {
 		log.Infof("%d addNode %d", r.id, id)
 		r.Prs[id] = &Progress{Next: 0}
-		r.PendingConfIndex = None
 	}
+	r.PendingConfIndex = None
 }
 
 // removeNode remove a node from raft group
