@@ -1,2 +1,1053 @@
-FAIL	github.com/pingcap-incubator/tinykv/kv/test_raftstore [build failed]
+=== RUN   TestBasicConfChange3B
+2022/03/16 09:45:04.784063 node.go:193: [0;37m[info] start raft store node, storeID: 4[0m
+2022/03/16 09:45:04.784331 peer.go:41: [0;37m[info] region id:1 region_epoch:<conf_ver:1 version:1 > peers:<id:1 store_id:1 > peers:<id:2 store_id:2 > peers:<id:3 store_id:3 > peers:<id:4 store_id:4 > peers:<id:5 store_id:5 >  create peer with ID 4[0m
+2022/03/16 09:45:04.784376 raft.go:179: [0;37m[info] newRaft:4[0m
+2022/03/16 09:45:04.784384 log.go:74: [0;37m[info] newLog:lo:6, hi+1:5[0m
+2022/03/16 09:45:04.784395 raft.go:205: [0;37m[info] ++----newRaftLog: 4, len:0, lastLogIndex:5, committed:5, applied:5[0m
+2022/03/16 09:45:04.784422 raftstore.go:174: [0;37m[info] start store 4, region_count 1, tombstone_count 0, takes 196.831µs[0m
+2022/03/16 09:45:04.784819 node.go:193: [0;37m[info] start raft store node, storeID: 5[0m
+2022/03/16 09:45:04.784907 peer.go:41: [0;37m[info] region id:1 region_epoch:<conf_ver:1 version:1 > peers:<id:1 store_id:1 > peers:<id:2 store_id:2 > peers:<id:3 store_id:3 > peers:<id:4 store_id:4 > peers:<id:5 store_id:5 >  create peer with ID 5[0m
+2022/03/16 09:45:04.784938 raft.go:179: [0;37m[info] newRaft:5[0m
+2022/03/16 09:45:04.784945 log.go:74: [0;37m[info] newLog:lo:6, hi+1:5[0m
+2022/03/16 09:45:04.784954 raft.go:205: [0;37m[info] ++----newRaftLog: 5, len:0, lastLogIndex:5, committed:5, applied:5[0m
+2022/03/16 09:45:04.784965 raftstore.go:174: [0;37m[info] start store 5, region_count 1, tombstone_count 0, takes 88.144µs[0m
+2022/03/16 09:45:04.785281 node.go:193: [0;37m[info] start raft store node, storeID: 1[0m
+2022/03/16 09:45:04.785361 peer.go:41: [0;37m[info] region id:1 region_epoch:<conf_ver:1 version:1 > peers:<id:1 store_id:1 > peers:<id:2 store_id:2 > peers:<id:3 store_id:3 > peers:<id:4 store_id:4 > peers:<id:5 store_id:5 >  create peer with ID 1[0m
+2022/03/16 09:45:04.785389 raft.go:179: [0;37m[info] newRaft:1[0m
+2022/03/16 09:45:04.785396 log.go:74: [0;37m[info] newLog:lo:6, hi+1:5[0m
+2022/03/16 09:45:04.785402 raft.go:205: [0;37m[info] ++----newRaftLog: 1, len:0, lastLogIndex:5, committed:5, applied:5[0m
+2022/03/16 09:45:04.785412 raftstore.go:174: [0;37m[info] start store 1, region_count 1, tombstone_count 0, takes 76.272µs[0m
+2022/03/16 09:45:04.785711 node.go:193: [0;37m[info] start raft store node, storeID: 2[0m
+2022/03/16 09:45:04.785792 peer.go:41: [0;37m[info] region id:1 region_epoch:<conf_ver:1 version:1 > peers:<id:1 store_id:1 > peers:<id:2 store_id:2 > peers:<id:3 store_id:3 > peers:<id:4 store_id:4 > peers:<id:5 store_id:5 >  create peer with ID 2[0m
+2022/03/16 09:45:04.785819 raft.go:179: [0;37m[info] newRaft:2[0m
+2022/03/16 09:45:04.785825 log.go:74: [0;37m[info] newLog:lo:6, hi+1:5[0m
+2022/03/16 09:45:04.785831 raft.go:205: [0;37m[info] ++----newRaftLog: 2, len:0, lastLogIndex:5, committed:5, applied:5[0m
+2022/03/16 09:45:04.785841 raftstore.go:174: [0;37m[info] start store 2, region_count 1, tombstone_count 0, takes 74.179µs[0m
+2022/03/16 09:45:04.786172 node.go:193: [0;37m[info] start raft store node, storeID: 3[0m
+2022/03/16 09:45:04.786246 peer.go:41: [0;37m[info] region id:1 region_epoch:<conf_ver:1 version:1 > peers:<id:1 store_id:1 > peers:<id:2 store_id:2 > peers:<id:3 store_id:3 > peers:<id:4 store_id:4 > peers:<id:5 store_id:5 >  create peer with ID 3[0m
+2022/03/16 09:45:04.786273 raft.go:179: [0;37m[info] newRaft:3[0m
+2022/03/16 09:45:04.786279 log.go:74: [0;37m[info] newLog:lo:6, hi+1:5[0m
+2022/03/16 09:45:04.786285 raft.go:205: [0;37m[info] ++----newRaftLog: 3, len:0, lastLogIndex:5, committed:5, applied:5[0m
+2022/03/16 09:45:04.786294 raftstore.go:174: [0;37m[info] start store 3, region_count 1, tombstone_count 0, takes 73.165µs[0m
+2022/03/16 09:45:05.286585 raft.go:416: [0;37m[info] ---+ tick: 3 Timeout [0m
+2022/03/16 09:45:05.286612 raft.go:459: [0;37m[info] ++ 3 becomeCadidate[0m
+2022/03/16 09:45:05.286707 rawnode.go:205: [0;37m[info] --- hasReady: 3 hardState changed[0m
+2022/03/16 09:45:05.286726 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:05.291133 raft.go:870: [0;37m[info] --+ 5 handleRequestVote: state: 0, Term: 5[0m
+2022/03/16 09:45:05.291154 rawnode.go:205: [0;37m[info] --- hasReady: 5 hardState changed[0m
+2022/03/16 09:45:05.291168 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:05.291168 raft.go:870: [0;37m[info] --+ 2 handleRequestVote: state: 0, Term: 5[0m
+2022/03/16 09:45:05.291203 rawnode.go:205: [0;37m[info] --- hasReady: 2 hardState changed[0m
+2022/03/16 09:45:05.291174 raft.go:870: [0;37m[info] --+ 1 handleRequestVote: state: 0, Term: 5[0m
+2022/03/16 09:45:05.291260 raft.go:870: [0;37m[info] --+ 4 handleRequestVote: state: 0, Term: 5[0m
+2022/03/16 09:45:05.291292 rawnode.go:205: [0;37m[info] --- hasReady: 4 hardState changed[0m
+2022/03/16 09:45:05.291297 rawnode.go:205: [0;37m[info] --- hasReady: 1 hardState changed[0m
+2022/03/16 09:45:05.291364 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:05.291319 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:05.291223 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:05.296196 raft.go:480: [0;37m[info] +++ 3 becomeLeader[0m
+2022/03/16 09:45:05.296213 raft.go:274: [0;37m[info] ****+++ 3 &&&6 sendAppend: to 1[0m
+2022/03/16 09:45:05.296219 raft.go:275: [0;37m[info] prevLogIndex:5, r.RaftLog.firstIndex:6[0m
+2022/03/16 09:45:05.296224 raft.go:276: [0;37m[info] r.Prs.Match: 0, r.Prs.Next: 6[0m
+2022/03/16 09:45:05.296231 raft.go:311: [0;37m[info] 3 sendAppend to 1: entfirst:6, entlast:6,len:1,next:6,index:5[0m
+2022/03/16 09:45:05.296238 raft.go:274: [0;37m[info] ****+++ 3 &&&6 sendAppend: to 2[0m
+2022/03/16 09:45:05.296243 raft.go:275: [0;37m[info] prevLogIndex:5, r.RaftLog.firstIndex:6[0m
+2022/03/16 09:45:05.296247 raft.go:276: [0;37m[info] r.Prs.Match: 0, r.Prs.Next: 6[0m
+2022/03/16 09:45:05.296264 raft.go:311: [0;37m[info] 3 sendAppend to 2: entfirst:6, entlast:6,len:1,next:6,index:5[0m
+2022/03/16 09:45:05.296271 raft.go:274: [0;37m[info] ****+++ 3 &&&6 sendAppend: to 4[0m
+2022/03/16 09:45:05.296280 raft.go:275: [0;37m[info] prevLogIndex:5, r.RaftLog.firstIndex:6[0m
+2022/03/16 09:45:05.296284 raft.go:276: [0;37m[info] r.Prs.Match: 0, r.Prs.Next: 6[0m
+2022/03/16 09:45:05.296290 raft.go:311: [0;37m[info] 3 sendAppend to 4: entfirst:6, entlast:6,len:1,next:6,index:5[0m
+2022/03/16 09:45:05.296305 raft.go:274: [0;37m[info] ****+++ 3 &&&6 sendAppend: to 5[0m
+2022/03/16 09:45:05.296311 raft.go:275: [0;37m[info] prevLogIndex:5, r.RaftLog.firstIndex:6[0m
+2022/03/16 09:45:05.296314 raft.go:276: [0;37m[info] r.Prs.Match: 0, r.Prs.Next: 6[0m
+2022/03/16 09:45:05.296319 raft.go:311: [0;37m[info] 3 sendAppend to 5: entfirst:6, entlast:6,len:1,next:6,index:5[0m
+2022/03/16 09:45:05.296326 rawnode.go:216: [0;37m[info] --- hasReady: 3 has entries to stable or apply commit![0m
+2022/03/16 09:45:05.296331 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:05.301023 raft.go:675: [0;37m[info] --+ 5 handleAppend, Lead: 3[0m
+2022/03/16 09:45:05.301062 raft.go:675: [0;37m[info] --+ 4 handleAppend, Lead: 3[0m
+2022/03/16 09:45:05.301099 raft.go:751: [0;37m[info] &&&4: 4 sendAppenResponse:[0m
+2022/03/16 09:45:05.301118 rawnode.go:216: [0;37m[info] --- hasReady: 4 has entries to stable or apply commit![0m
+2022/03/16 09:45:05.301132 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:05.301064 raft.go:751: [0;37m[info] &&&4: 5 sendAppenResponse:[0m
+2022/03/16 09:45:05.301162 rawnode.go:216: [0;37m[info] --- hasReady: 5 has entries to stable or apply commit![0m
+2022/03/16 09:45:05.301184 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:05.301053 raft.go:675: [0;37m[info] --+ 1 handleAppend, Lead: 3[0m
+2022/03/16 09:45:05.301292 raft.go:751: [0;37m[info] &&&4: 1 sendAppenResponse:[0m
+2022/03/16 09:45:05.301325 rawnode.go:216: [0;37m[info] --- hasReady: 1 has entries to stable or apply commit![0m
+2022/03/16 09:45:05.301338 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:05.301039 raft.go:675: [0;37m[info] --+ 2 handleAppend, Lead: 3[0m
+2022/03/16 09:45:05.301449 raft.go:751: [0;37m[info] &&&4: 2 sendAppenResponse:[0m
+2022/03/16 09:45:05.301483 rawnode.go:216: [0;37m[info] --- hasReady: 2 has entries to stable or apply commit![0m
+2022/03/16 09:45:05.301496 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:05.306033 raft.go:788: [0;37m[info] 3 handleAP 5 Response:match:6, next:7[0m
+2022/03/16 09:45:05.306069 raft.go:788: [0;37m[info] 3 handleAP 2 Response:match:6, next:7[0m
+2022/03/16 09:45:05.306079 raft.go:274: [0;37m[info] ****+++ 3 &&&6 sendAppend: to 1[0m
+2022/03/16 09:45:05.306085 raft.go:275: [0;37m[info] prevLogIndex:5, r.RaftLog.firstIndex:6[0m
+2022/03/16 09:45:05.306091 raft.go:276: [0;37m[info] r.Prs.Match: 0, r.Prs.Next: 6[0m
+2022/03/16 09:45:05.306100 raft.go:311: [0;37m[info] 3 sendAppend to 1: entfirst:6, entlast:6,len:1,next:6,index:5[0m
+2022/03/16 09:45:05.306109 raft.go:274: [0;37m[info] ****+++ 3 &&&6 sendAppend: to 2[0m
+2022/03/16 09:45:05.306114 raft.go:275: [0;37m[info] prevLogIndex:6, r.RaftLog.firstIndex:6[0m
+2022/03/16 09:45:05.306120 raft.go:276: [0;37m[info] r.Prs.Match: 6, r.Prs.Next: 7[0m
+2022/03/16 09:45:05.306127 raft.go:311: [0;37m[info] 3 sendAppend to 2: entfirst:6, entlast:6,len:1,next:7,index:6[0m
+2022/03/16 09:45:05.306136 raft.go:274: [0;37m[info] ****+++ 3 &&&6 sendAppend: to 4[0m
+2022/03/16 09:45:05.306147 raft.go:275: [0;37m[info] prevLogIndex:5, r.RaftLog.firstIndex:6[0m
+2022/03/16 09:45:05.306153 raft.go:276: [0;37m[info] r.Prs.Match: 0, r.Prs.Next: 6[0m
+2022/03/16 09:45:05.306160 raft.go:311: [0;37m[info] 3 sendAppend to 4: entfirst:6, entlast:6,len:1,next:6,index:5[0m
+2022/03/16 09:45:05.306169 raft.go:274: [0;37m[info] ****+++ 3 &&&6 sendAppend: to 5[0m
+2022/03/16 09:45:05.306174 raft.go:275: [0;37m[info] prevLogIndex:6, r.RaftLog.firstIndex:6[0m
+2022/03/16 09:45:05.306179 raft.go:276: [0;37m[info] r.Prs.Match: 6, r.Prs.Next: 7[0m
+2022/03/16 09:45:05.306190 raft.go:311: [0;37m[info] 3 sendAppend to 5: entfirst:6, entlast:6,len:1,next:7,index:6[0m
+2022/03/16 09:45:05.306198 rawnode.go:205: [0;37m[info] --- hasReady: 3 hardState changed[0m
+2022/03/16 09:45:05.306208 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:05.311050 raft.go:675: [0;37m[info] --+ 2 handleAppend, Lead: 3[0m
+2022/03/16 09:45:05.311071 raft.go:675: [0;37m[info] --+ 1 handleAppend, Lead: 3[0m
+2022/03/16 09:45:05.311090 raft.go:751: [0;37m[info] &&&4: 1 sendAppenResponse:[0m
+2022/03/16 09:45:05.311096 raft.go:675: [0;37m[info] --+ 5 handleAppend, Lead: 3[0m
+2022/03/16 09:45:05.311119 raft.go:694: [0;37m[info] ++---- 5 handleAppend: first:6 last:6, len:1, m.Index:6, lenAppend:0[0m
+2022/03/16 09:45:05.311133 raft.go:697: [0;37m[info] ++---- 5 handleAppend: logTerm:6, m.LogTerm:6[0m
+2022/03/16 09:45:05.311144 raft.go:751: [0;37m[info] &&&4: 5 sendAppenResponse:[0m
+2022/03/16 09:45:05.311156 rawnode.go:205: [0;37m[info] --- hasReady: 5 hardState changed[0m
+2022/03/16 09:45:05.311174 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:05.311076 raft.go:694: [0;37m[info] ++---- 2 handleAppend: first:6 last:6, len:1, m.Index:6, lenAppend:0[0m
+2022/03/16 09:45:05.311209 raft.go:697: [0;37m[info] ++---- 2 handleAppend: logTerm:6, m.LogTerm:6[0m
+2022/03/16 09:45:05.311225 raft.go:751: [0;37m[info] &&&4: 2 sendAppenResponse:[0m
+2022/03/16 09:45:05.311238 rawnode.go:205: [0;37m[info] --- hasReady: 2 hardState changed[0m
+2022/03/16 09:45:05.311254 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:05.311106 rawnode.go:205: [0;37m[info] --- hasReady: 1 hardState changed[0m
+2022/03/16 09:45:05.311324 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:05.311055 raft.go:675: [0;37m[info] --+ 4 handleAppend, Lead: 3[0m
+2022/03/16 09:45:05.311340 raft.go:751: [0;37m[info] &&&4: 4 sendAppenResponse:[0m
+2022/03/16 09:45:05.311359 rawnode.go:205: [0;37m[info] --- hasReady: 4 hardState changed[0m
+2022/03/16 09:45:05.311373 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:05.316242 raft.go:788: [0;37m[info] 3 handleAP 1 Response:match:6, next:7[0m
+2022/03/16 09:45:05.316275 raft.go:788: [0;37m[info] 3 handleAP 4 Response:match:6, next:7[0m
+2022/03/16 09:45:05.386594 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:05.388053 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:05.388090 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:05.388105 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:05.388048 raft.go:1064: [0;37m[info] 3 handleTransferleader, match: to 1, leadTransferee:1[0m
+2022/03/16 09:45:05.388091 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:05.388157 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:05.389554 raft.go:1064: [0;37m[info] 3 handleTransferleader, match: to 1, leadTransferee:1[0m
+2022/03/16 09:45:05.389592 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:05.389622 raft.go:459: [0;37m[info] ++ 1 becomeCadidate[0m
+2022/03/16 09:45:05.389651 rawnode.go:205: [0;37m[info] --- hasReady: 1 hardState changed[0m
+2022/03/16 09:45:05.389666 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:05.390993 raft.go:1064: [0;37m[info] 3 handleTransferleader, match: to 1, leadTransferee:1[0m
+2022/03/16 09:45:05.391022 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:05.391023 raft.go:459: [0;37m[info] ++ 1 becomeCadidate[0m
+2022/03/16 09:45:05.391046 raft.go:870: [0;37m[info] --+ 2 handleRequestVote: state: 0, Term: 6[0m
+2022/03/16 09:45:05.391072 rawnode.go:205: [0;37m[info] --- hasReady: 2 hardState changed[0m
+2022/03/16 09:45:05.391077 rawnode.go:205: [0;37m[info] --- hasReady: 1 hardState changed[0m
+2022/03/16 09:45:05.391105 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:05.391134 raft.go:870: [0;37m[info] --+ 5 handleRequestVote: state: 0, Term: 6[0m
+2022/03/16 09:45:05.391161 rawnode.go:205: [0;37m[info] --- hasReady: 5 hardState changed[0m
+2022/03/16 09:45:05.391177 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:05.391090 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:05.391055 raft.go:870: [0;37m[info] --+ 4 handleRequestVote: state: 0, Term: 6[0m
+2022/03/16 09:45:05.391332 rawnode.go:205: [0;37m[info] --- hasReady: 4 hardState changed[0m
+2022/03/16 09:45:05.391357 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:05.398142 raft.go:870: [0;37m[info] --+ 5 handleRequestVote: state: 0, Term: 7[0m
+2022/03/16 09:45:05.398162 rawnode.go:205: [0;37m[info] --- hasReady: 5 hardState changed[0m
+2022/03/16 09:45:05.398173 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:05.398155 raft.go:870: [0;37m[info] --+ 2 handleRequestVote: state: 0, Term: 7[0m
+2022/03/16 09:45:05.398206 rawnode.go:205: [0;37m[info] --- hasReady: 2 hardState changed[0m
+2022/03/16 09:45:05.398215 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:05.398225 raft.go:870: [0;37m[info] --+ 3 handleRequestVote: state: 2, Term: 6[0m
+2022/03/16 09:45:05.398254 raft.go:870: [0;37m[info] --+ 4 handleRequestVote: state: 0, Term: 7[0m
+2022/03/16 09:45:05.398273 raft.go:870: [0;37m[info] --+ 3 handleRequestVote: state: 0, Term: 7[0m
+2022/03/16 09:45:05.398294 rawnode.go:205: [0;37m[info] --- hasReady: 3 hardState changed[0m
+2022/03/16 09:45:05.398317 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:05.398241 raft.go:459: [0;37m[info] ++ 1 becomeCadidate[0m
+2022/03/16 09:45:05.398280 rawnode.go:205: [0;37m[info] --- hasReady: 4 hardState changed[0m
+2022/03/16 09:45:05.398363 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:05.398387 rawnode.go:205: [0;37m[info] --- hasReady: 1 hardState changed[0m
+2022/03/16 09:45:05.398406 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:05.404000 raft.go:480: [0;37m[info] +++ 1 becomeLeader[0m
+2022/03/16 09:45:05.404023 raft.go:870: [0;37m[info] --+ 2 handleRequestVote: state: 0, Term: 8[0m
+2022/03/16 09:45:05.404043 raft.go:870: [0;37m[info] --+ 5 handleRequestVote: state: 0, Term: 8[0m
+2022/03/16 09:45:05.404046 rawnode.go:205: [0;37m[info] --- hasReady: 2 hardState changed[0m
+2022/03/16 09:45:05.404064 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:05.404033 raft.go:274: [0;37m[info] ****+++ 1 &&&6 sendAppend: to 2[0m
+2022/03/16 09:45:05.404128 raft.go:275: [0;37m[info] prevLogIndex:6, r.RaftLog.firstIndex:6[0m
+2022/03/16 09:45:05.404134 raft.go:276: [0;37m[info] r.Prs.Match: 0, r.Prs.Next: 7[0m
+2022/03/16 09:45:05.404149 raft.go:311: [0;37m[info] 1 sendAppend to 2: entfirst:6, entlast:7,len:2,next:7,index:6[0m
+2022/03/16 09:45:05.404050 raft.go:870: [0;37m[info] --+ 4 handleRequestVote: state: 0, Term: 8[0m
+2022/03/16 09:45:05.404181 rawnode.go:205: [0;37m[info] --- hasReady: 4 hardState changed[0m
+2022/03/16 09:45:05.404200 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:05.404058 rawnode.go:205: [0;37m[info] --- hasReady: 5 hardState changed[0m
+2022/03/16 09:45:05.404258 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:05.404007 raft.go:870: [0;37m[info] --+ 3 handleRequestVote: state: 0, Term: 8[0m
+2022/03/16 09:45:05.404355 rawnode.go:205: [0;37m[info] --- hasReady: 3 hardState changed[0m
+2022/03/16 09:45:05.404374 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:05.404160 raft.go:274: [0;37m[info] ****+++ 1 &&&6 sendAppend: to 3[0m
+2022/03/16 09:45:05.404417 raft.go:275: [0;37m[info] prevLogIndex:6, r.RaftLog.firstIndex:6[0m
+2022/03/16 09:45:05.404421 raft.go:276: [0;37m[info] r.Prs.Match: 0, r.Prs.Next: 7[0m
+2022/03/16 09:45:05.404427 raft.go:311: [0;37m[info] 1 sendAppend to 3: entfirst:6, entlast:7,len:2,next:7,index:6[0m
+2022/03/16 09:45:05.404434 raft.go:274: [0;37m[info] ****+++ 1 &&&6 sendAppend: to 4[0m
+2022/03/16 09:45:05.404437 raft.go:275: [0;37m[info] prevLogIndex:6, r.RaftLog.firstIndex:6[0m
+2022/03/16 09:45:05.404442 raft.go:276: [0;37m[info] r.Prs.Match: 0, r.Prs.Next: 7[0m
+2022/03/16 09:45:05.404447 raft.go:311: [0;37m[info] 1 sendAppend to 4: entfirst:6, entlast:7,len:2,next:7,index:6[0m
+2022/03/16 09:45:05.404458 raft.go:274: [0;37m[info] ****+++ 1 &&&6 sendAppend: to 5[0m
+2022/03/16 09:45:05.404463 raft.go:275: [0;37m[info] prevLogIndex:6, r.RaftLog.firstIndex:6[0m
+2022/03/16 09:45:05.404469 raft.go:276: [0;37m[info] r.Prs.Match: 0, r.Prs.Next: 7[0m
+2022/03/16 09:45:05.404474 raft.go:311: [0;37m[info] 1 sendAppend to 5: entfirst:6, entlast:7,len:2,next:7,index:6[0m
+2022/03/16 09:45:05.404485 rawnode.go:216: [0;37m[info] --- hasReady: 1 has entries to stable or apply commit![0m
+2022/03/16 09:45:05.404490 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:05.408328 raft.go:675: [0;37m[info] --+ 5 handleAppend, Lead: 1[0m
+2022/03/16 09:45:05.408351 raft.go:694: [0;37m[info] ++---- 5 handleAppend: first:6 last:6, len:1, m.Index:6, lenAppend:1[0m
+2022/03/16 09:45:05.408352 raft.go:675: [0;37m[info] --+ 2 handleAppend, Lead: 1[0m
+2022/03/16 09:45:05.408390 raft.go:694: [0;37m[info] ++---- 2 handleAppend: first:6 last:6, len:1, m.Index:6, lenAppend:1[0m
+2022/03/16 09:45:05.408409 raft.go:697: [0;37m[info] ++---- 2 handleAppend: logTerm:6, m.LogTerm:6[0m
+2022/03/16 09:45:05.408424 raft.go:751: [0;37m[info] &&&4: 2 sendAppenResponse:[0m
+2022/03/16 09:45:05.408437 rawnode.go:216: [0;37m[info] --- hasReady: 2 has entries to stable or apply commit![0m
+2022/03/16 09:45:05.408445 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:05.408361 raft.go:697: [0;37m[info] ++---- 5 handleAppend: logTerm:6, m.LogTerm:6[0m
+2022/03/16 09:45:05.408470 raft.go:751: [0;37m[info] &&&4: 5 sendAppenResponse:[0m
+2022/03/16 09:45:05.408490 rawnode.go:216: [0;37m[info] --- hasReady: 5 has entries to stable or apply commit![0m
+2022/03/16 09:45:05.408501 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:05.408358 raft.go:675: [0;37m[info] --+ 4 handleAppend, Lead: 1[0m
+2022/03/16 09:45:05.408575 raft.go:694: [0;37m[info] ++---- 4 handleAppend: first:6 last:6, len:1, m.Index:6, lenAppend:1[0m
+2022/03/16 09:45:05.408602 raft.go:697: [0;37m[info] ++---- 4 handleAppend: logTerm:6, m.LogTerm:6[0m
+2022/03/16 09:45:05.408622 raft.go:751: [0;37m[info] &&&4: 4 sendAppenResponse:[0m
+2022/03/16 09:45:05.408637 rawnode.go:216: [0;37m[info] --- hasReady: 4 has entries to stable or apply commit![0m
+2022/03/16 09:45:05.408648 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:05.408325 raft.go:675: [0;37m[info] --+ 3 handleAppend, Lead: 1[0m
+2022/03/16 09:45:05.408679 raft.go:694: [0;37m[info] ++---- 3 handleAppend: first:6 last:6, len:1, m.Index:6, lenAppend:1[0m
+2022/03/16 09:45:05.408702 raft.go:697: [0;37m[info] ++---- 3 handleAppend: logTerm:6, m.LogTerm:6[0m
+2022/03/16 09:45:05.408741 raft.go:751: [0;37m[info] &&&4: 3 sendAppenResponse:[0m
+2022/03/16 09:45:05.408750 rawnode.go:216: [0;37m[info] --- hasReady: 3 has entries to stable or apply commit![0m
+2022/03/16 09:45:05.408756 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:05.412957 raft.go:788: [0;37m[info] 1 handleAP 2 Response:match:7, next:8[0m
+2022/03/16 09:45:05.412989 raft.go:788: [0;37m[info] 1 handleAP 4 Response:match:7, next:8[0m
+2022/03/16 09:45:05.413003 raft.go:274: [0;37m[info] ****+++ 1 &&&6 sendAppend: to 2[0m
+2022/03/16 09:45:05.413012 raft.go:275: [0;37m[info] prevLogIndex:7, r.RaftLog.firstIndex:6[0m
+2022/03/16 09:45:05.413021 raft.go:276: [0;37m[info] r.Prs.Match: 7, r.Prs.Next: 8[0m
+2022/03/16 09:45:05.413052 raft.go:311: [0;37m[info] 1 sendAppend to 2: entfirst:6, entlast:7,len:2,next:8,index:7[0m
+2022/03/16 09:45:05.413066 raft.go:274: [0;37m[info] ****+++ 1 &&&6 sendAppend: to 3[0m
+2022/03/16 09:45:05.413075 raft.go:275: [0;37m[info] prevLogIndex:6, r.RaftLog.firstIndex:6[0m
+2022/03/16 09:45:05.413083 raft.go:276: [0;37m[info] r.Prs.Match: 0, r.Prs.Next: 7[0m
+2022/03/16 09:45:05.413094 raft.go:311: [0;37m[info] 1 sendAppend to 3: entfirst:6, entlast:7,len:2,next:7,index:6[0m
+2022/03/16 09:45:05.413109 raft.go:274: [0;37m[info] ****+++ 1 &&&6 sendAppend: to 4[0m
+2022/03/16 09:45:05.413117 raft.go:275: [0;37m[info] prevLogIndex:7, r.RaftLog.firstIndex:6[0m
+2022/03/16 09:45:05.413125 raft.go:276: [0;37m[info] r.Prs.Match: 7, r.Prs.Next: 8[0m
+2022/03/16 09:45:05.413135 raft.go:311: [0;37m[info] 1 sendAppend to 4: entfirst:6, entlast:7,len:2,next:8,index:7[0m
+2022/03/16 09:45:05.413160 raft.go:274: [0;37m[info] ****+++ 1 &&&6 sendAppend: to 5[0m
+2022/03/16 09:45:05.413165 raft.go:275: [0;37m[info] prevLogIndex:6, r.RaftLog.firstIndex:6[0m
+2022/03/16 09:45:05.413170 raft.go:276: [0;37m[info] r.Prs.Match: 0, r.Prs.Next: 7[0m
+2022/03/16 09:45:05.413177 raft.go:311: [0;37m[info] 1 sendAppend to 5: entfirst:6, entlast:7,len:2,next:7,index:6[0m
+2022/03/16 09:45:05.413185 rawnode.go:205: [0;37m[info] --- hasReady: 1 hardState changed[0m
+2022/03/16 09:45:05.413194 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:05.417930 raft.go:675: [0;37m[info] --+ 3 handleAppend, Lead: 1[0m
+2022/03/16 09:45:05.417960 raft.go:694: [0;37m[info] ++---- 3 handleAppend: first:6 last:7, len:2, m.Index:6, lenAppend:1[0m
+2022/03/16 09:45:05.417980 raft.go:675: [0;37m[info] --+ 4 handleAppend, Lead: 1[0m
+2022/03/16 09:45:05.417979 raft.go:697: [0;37m[info] ++---- 3 handleAppend: logTerm:6, m.LogTerm:6[0m
+2022/03/16 09:45:05.418014 raft.go:694: [0;37m[info] ++---- 4 handleAppend: first:6 last:7, len:2, m.Index:7, lenAppend:0[0m
+2022/03/16 09:45:05.418016 raft.go:751: [0;37m[info] &&&4: 3 sendAppenResponse:[0m
+2022/03/16 09:45:05.418030 raft.go:675: [0;37m[info] --+ 2 handleAppend, Lead: 1[0m
+2022/03/16 09:45:05.418027 raft.go:675: [0;37m[info] --+ 5 handleAppend, Lead: 1[0m
+2022/03/16 09:45:05.418024 raft.go:697: [0;37m[info] ++---- 4 handleAppend: logTerm:9, m.LogTerm:9[0m
+2022/03/16 09:45:05.418032 rawnode.go:205: [0;37m[info] --- hasReady: 3 hardState changed[0m
+2022/03/16 09:45:05.418061 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:05.418049 raft.go:694: [0;37m[info] ++---- 5 handleAppend: first:6 last:7, len:2, m.Index:6, lenAppend:1[0m
+2022/03/16 09:45:05.418075 raft.go:697: [0;37m[info] ++---- 5 handleAppend: logTerm:6, m.LogTerm:6[0m
+2022/03/16 09:45:05.418091 raft.go:751: [0;37m[info] &&&4: 5 sendAppenResponse:[0m
+2022/03/16 09:45:05.418103 rawnode.go:205: [0;37m[info] --- hasReady: 5 hardState changed[0m
+2022/03/16 09:45:05.418036 raft.go:694: [0;37m[info] ++---- 2 handleAppend: first:6 last:7, len:2, m.Index:7, lenAppend:0[0m
+2022/03/16 09:45:05.418128 raft.go:697: [0;37m[info] ++---- 2 handleAppend: logTerm:9, m.LogTerm:9[0m
+2022/03/16 09:45:05.418146 raft.go:751: [0;37m[info] &&&4: 2 sendAppenResponse:[0m
+2022/03/16 09:45:05.418158 rawnode.go:205: [0;37m[info] --- hasReady: 2 hardState changed[0m
+2022/03/16 09:45:05.418167 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:05.418052 raft.go:751: [0;37m[info] &&&4: 4 sendAppenResponse:[0m
+2022/03/16 09:45:05.418220 rawnode.go:205: [0;37m[info] --- hasReady: 4 hardState changed[0m
+2022/03/16 09:45:05.418235 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:05.418116 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:05.423136 raft.go:788: [0;37m[info] 1 handleAP 5 Response:match:7, next:8[0m
+2022/03/16 09:45:05.423169 raft.go:788: [0;37m[info] 1 handleAP 3 Response:match:7, next:8[0m
+2022/03/16 09:45:05.423183 raft.go:1064: [0;37m[info] 1 handleTransferleader, match: to 1, leadTransferee:1[0m
+2022/03/16 09:45:05.423199 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:05.428403 raft.go:1042: [0;37m[info] 1 handleTransferleader, transfer to self[0m
+2022/03/16 09:45:05.428449 raft.go:459: [0;37m[info] ++ 1 becomeCadidate[0m
+2022/03/16 09:45:05.428460 raft.go:480: [0;37m[info] +++ 1 becomeLeader[0m
+2022/03/16 09:45:05.428474 raft.go:274: [0;37m[info] ****+++ 1 &&&6 sendAppend: to 2[0m
+2022/03/16 09:45:05.428483 raft.go:275: [0;37m[info] prevLogIndex:7, r.RaftLog.firstIndex:6[0m
+2022/03/16 09:45:05.428510 raft.go:276: [0;37m[info] r.Prs.Match: 7, r.Prs.Next: 8[0m
+2022/03/16 09:45:05.428536 raft.go:311: [0;37m[info] 1 sendAppend to 2: entfirst:6, entlast:8,len:3,next:8,index:7[0m
+2022/03/16 09:45:05.428545 raft.go:274: [0;37m[info] ****+++ 1 &&&6 sendAppend: to 3[0m
+2022/03/16 09:45:05.428549 raft.go:275: [0;37m[info] prevLogIndex:7, r.RaftLog.firstIndex:6[0m
+2022/03/16 09:45:05.428553 raft.go:276: [0;37m[info] r.Prs.Match: 7, r.Prs.Next: 8[0m
+2022/03/16 09:45:05.428559 raft.go:311: [0;37m[info] 1 sendAppend to 3: entfirst:6, entlast:8,len:3,next:8,index:7[0m
+2022/03/16 09:45:05.428565 raft.go:274: [0;37m[info] ****+++ 1 &&&6 sendAppend: to 4[0m
+2022/03/16 09:45:05.428569 raft.go:275: [0;37m[info] prevLogIndex:7, r.RaftLog.firstIndex:6[0m
+2022/03/16 09:45:05.428573 raft.go:276: [0;37m[info] r.Prs.Match: 7, r.Prs.Next: 8[0m
+2022/03/16 09:45:05.428579 raft.go:311: [0;37m[info] 1 sendAppend to 4: entfirst:6, entlast:8,len:3,next:8,index:7[0m
+2022/03/16 09:45:05.428586 raft.go:274: [0;37m[info] ****+++ 1 &&&6 sendAppend: to 5[0m
+2022/03/16 09:45:05.428590 raft.go:275: [0;37m[info] prevLogIndex:7, r.RaftLog.firstIndex:6[0m
+2022/03/16 09:45:05.428594 raft.go:276: [0;37m[info] r.Prs.Match: 7, r.Prs.Next: 8[0m
+2022/03/16 09:45:05.428599 raft.go:311: [0;37m[info] 1 sendAppend to 5: entfirst:6, entlast:8,len:3,next:8,index:7[0m
+2022/03/16 09:45:05.428611 rawnode.go:205: [0;37m[info] --- hasReady: 1 hardState changed[0m
+2022/03/16 09:45:05.428619 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:05.433407 raft.go:1064: [0;37m[info] 1 handleTransferleader, match: to 1, leadTransferee:1[0m
+2022/03/16 09:45:05.433422 raft.go:675: [0;37m[info] --+ 4 handleAppend, Lead: 1[0m
+2022/03/16 09:45:05.433409 raft.go:675: [0;37m[info] --+ 2 handleAppend, Lead: 1[0m
+2022/03/16 09:45:05.433443 raft.go:694: [0;37m[info] ++---- 4 handleAppend: first:6 last:7, len:2, m.Index:7, lenAppend:1[0m
+2022/03/16 09:45:05.433441 raft.go:675: [0;37m[info] --+ 5 handleAppend, Lead: 1[0m
+2022/03/16 09:45:05.433483 raft.go:694: [0;37m[info] ++---- 5 handleAppend: first:6 last:7, len:2, m.Index:7, lenAppend:1[0m
+2022/03/16 09:45:05.433507 raft.go:697: [0;37m[info] ++---- 5 handleAppend: logTerm:9, m.LogTerm:9[0m
+2022/03/16 09:45:05.433529 raft.go:751: [0;37m[info] &&&4: 5 sendAppenResponse:[0m
+2022/03/16 09:45:05.433547 rawnode.go:205: [0;37m[info] --- hasReady: 5 hardState changed[0m
+2022/03/16 09:45:05.433564 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:05.433427 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:05.433453 raft.go:697: [0;37m[info] ++---- 4 handleAppend: logTerm:9, m.LogTerm:9[0m
+2022/03/16 09:45:05.433665 raft.go:751: [0;37m[info] &&&4: 4 sendAppenResponse:[0m
+2022/03/16 09:45:05.433677 rawnode.go:205: [0;37m[info] --- hasReady: 4 hardState changed[0m
+2022/03/16 09:45:05.433684 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:05.433445 raft.go:694: [0;37m[info] ++---- 2 handleAppend: first:6 last:7, len:2, m.Index:7, lenAppend:1[0m
+2022/03/16 09:45:05.433751 raft.go:697: [0;37m[info] ++---- 2 handleAppend: logTerm:9, m.LogTerm:9[0m
+2022/03/16 09:45:05.433765 raft.go:751: [0;37m[info] &&&4: 2 sendAppenResponse:[0m
+2022/03/16 09:45:05.433773 rawnode.go:205: [0;37m[info] --- hasReady: 2 hardState changed[0m
+2022/03/16 09:45:05.433805 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:05.433431 raft.go:675: [0;37m[info] --+ 3 handleAppend, Lead: 1[0m
+2022/03/16 09:45:05.433861 raft.go:694: [0;37m[info] ++---- 3 handleAppend: first:6 last:7, len:2, m.Index:7, lenAppend:1[0m
+2022/03/16 09:45:05.433871 raft.go:697: [0;37m[info] ++---- 3 handleAppend: logTerm:9, m.LogTerm:9[0m
+2022/03/16 09:45:05.433886 raft.go:751: [0;37m[info] &&&4: 3 sendAppenResponse:[0m
+2022/03/16 09:45:05.433896 rawnode.go:205: [0;37m[info] --- hasReady: 3 hardState changed[0m
+2022/03/16 09:45:05.433903 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:05.438847 raft.go:788: [0;37m[info] 1 handleAP 4 Response:match:8, next:9[0m
+2022/03/16 09:45:05.438881 raft.go:788: [0;37m[info] 1 handleAP 2 Response:match:8, next:9[0m
+2022/03/16 09:45:05.438917 raft.go:274: [0;37m[info] ****+++ 1 &&&6 sendAppend: to 2[0m
+2022/03/16 09:45:05.438930 raft.go:275: [0;37m[info] prevLogIndex:8, r.RaftLog.firstIndex:6[0m
+2022/03/16 09:45:05.438945 raft.go:276: [0;37m[info] r.Prs.Match: 8, r.Prs.Next: 9[0m
+2022/03/16 09:45:05.438964 raft.go:311: [0;37m[info] 1 sendAppend to 2: entfirst:6, entlast:8,len:3,next:9,index:8[0m
+2022/03/16 09:45:05.438990 raft.go:274: [0;37m[info] ****+++ 1 &&&6 sendAppend: to 3[0m
+2022/03/16 09:45:05.439003 raft.go:275: [0;37m[info] prevLogIndex:7, r.RaftLog.firstIndex:6[0m
+2022/03/16 09:45:05.439019 raft.go:276: [0;37m[info] r.Prs.Match: 7, r.Prs.Next: 8[0m
+2022/03/16 09:45:05.439038 raft.go:311: [0;37m[info] 1 sendAppend to 3: entfirst:6, entlast:8,len:3,next:8,index:7[0m
+2022/03/16 09:45:05.439061 raft.go:274: [0;37m[info] ****+++ 1 &&&6 sendAppend: to 4[0m
+2022/03/16 09:45:05.439074 raft.go:275: [0;37m[info] prevLogIndex:8, r.RaftLog.firstIndex:6[0m
+2022/03/16 09:45:05.439088 raft.go:276: [0;37m[info] r.Prs.Match: 8, r.Prs.Next: 9[0m
+2022/03/16 09:45:05.439104 raft.go:311: [0;37m[info] 1 sendAppend to 4: entfirst:6, entlast:8,len:3,next:9,index:8[0m
+2022/03/16 09:45:05.439129 raft.go:274: [0;37m[info] ****+++ 1 &&&6 sendAppend: to 5[0m
+2022/03/16 09:45:05.439142 raft.go:275: [0;37m[info] prevLogIndex:7, r.RaftLog.firstIndex:6[0m
+2022/03/16 09:45:05.439171 raft.go:276: [0;37m[info] r.Prs.Match: 7, r.Prs.Next: 8[0m
+2022/03/16 09:45:05.439189 raft.go:311: [0;37m[info] 1 sendAppend to 5: entfirst:6, entlast:8,len:3,next:8,index:7[0m
+2022/03/16 09:45:05.439214 raft.go:788: [0;37m[info] 1 handleAP 5 Response:match:8, next:9[0m
+2022/03/16 09:45:05.439237 raft.go:788: [0;37m[info] 1 handleAP 3 Response:match:8, next:9[0m
+2022/03/16 09:45:05.439258 raft.go:1042: [0;37m[info] 1 handleTransferleader, transfer to self[0m
+2022/03/16 09:45:05.439278 raft.go:459: [0;37m[info] ++ 1 becomeCadidate[0m
+2022/03/16 09:45:05.439292 raft.go:480: [0;37m[info] +++ 1 becomeLeader[0m
+2022/03/16 09:45:05.439308 raft.go:274: [0;37m[info] ****+++ 1 &&&6 sendAppend: to 3[0m
+2022/03/16 09:45:05.439322 raft.go:275: [0;37m[info] prevLogIndex:8, r.RaftLog.firstIndex:6[0m
+2022/03/16 09:45:05.439336 raft.go:276: [0;37m[info] r.Prs.Match: 8, r.Prs.Next: 9[0m
+2022/03/16 09:45:05.439354 raft.go:311: [0;37m[info] 1 sendAppend to 3: entfirst:6, entlast:9,len:4,next:9,index:8[0m
+2022/03/16 09:45:05.439392 raft.go:274: [0;37m[info] ****+++ 1 &&&6 sendAppend: to 4[0m
+2022/03/16 09:45:05.439410 raft.go:275: [0;37m[info] prevLogIndex:8, r.RaftLog.firstIndex:6[0m
+2022/03/16 09:45:05.439423 raft.go:276: [0;37m[info] r.Prs.Match: 8, r.Prs.Next: 9[0m
+2022/03/16 09:45:05.439442 raft.go:311: [0;37m[info] 1 sendAppend to 4: entfirst:6, entlast:9,len:4,next:9,index:8[0m
+2022/03/16 09:45:05.439462 raft.go:274: [0;37m[info] ****+++ 1 &&&6 sendAppend: to 5[0m
+2022/03/16 09:45:05.439474 raft.go:275: [0;37m[info] prevLogIndex:8, r.RaftLog.firstIndex:6[0m
+2022/03/16 09:45:05.439488 raft.go:276: [0;37m[info] r.Prs.Match: 8, r.Prs.Next: 9[0m
+2022/03/16 09:45:05.439506 raft.go:311: [0;37m[info] 1 sendAppend to 5: entfirst:6, entlast:9,len:4,next:9,index:8[0m
+2022/03/16 09:45:05.439538 raft.go:274: [0;37m[info] ****+++ 1 &&&6 sendAppend: to 2[0m
+2022/03/16 09:45:05.439551 raft.go:275: [0;37m[info] prevLogIndex:8, r.RaftLog.firstIndex:6[0m
+2022/03/16 09:45:05.439566 raft.go:276: [0;37m[info] r.Prs.Match: 8, r.Prs.Next: 9[0m
+2022/03/16 09:45:05.439584 raft.go:311: [0;37m[info] 1 sendAppend to 2: entfirst:6, entlast:9,len:4,next:9,index:8[0m
+2022/03/16 09:45:05.439618 rawnode.go:205: [0;37m[info] --- hasReady: 1 hardState changed[0m
+2022/03/16 09:45:05.439642 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:05.446873 raft.go:675: [0;37m[info] --+ 3 handleAppend, Lead: 1[0m
+2022/03/16 09:45:05.446901 raft.go:694: [0;37m[info] ++---- 3 handleAppend: first:6 last:8, len:3, m.Index:7, lenAppend:1[0m
+2022/03/16 09:45:05.446908 raft.go:675: [0;37m[info] --+ 2 handleAppend, Lead: 1[0m
+2022/03/16 09:45:05.446942 raft.go:675: [0;37m[info] --+ 4 handleAppend, Lead: 1[0m
+2022/03/16 09:45:05.446957 raft.go:694: [0;37m[info] ++---- 4 handleAppend: first:6 last:8, len:3, m.Index:8, lenAppend:0[0m
+2022/03/16 09:45:05.446967 raft.go:697: [0;37m[info] ++---- 4 handleAppend: logTerm:10, m.LogTerm:10[0m
+2022/03/16 09:45:05.446976 raft.go:751: [0;37m[info] &&&4: 4 sendAppenResponse:[0m
+2022/03/16 09:45:05.446985 raft.go:675: [0;37m[info] --+ 4 handleAppend, Lead: 1[0m
+2022/03/16 09:45:05.446990 raft.go:694: [0;37m[info] ++---- 4 handleAppend: first:6 last:8, len:3, m.Index:8, lenAppend:1[0m
+2022/03/16 09:45:05.446998 raft.go:697: [0;37m[info] ++---- 4 handleAppend: logTerm:10, m.LogTerm:10[0m
+2022/03/16 09:45:05.447006 raft.go:751: [0;37m[info] &&&4: 4 sendAppenResponse:[0m
+2022/03/16 09:45:05.447014 rawnode.go:205: [0;37m[info] --- hasReady: 4 hardState changed[0m
+2022/03/16 09:45:05.447049 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:05.446950 raft.go:694: [0;37m[info] ++---- 2 handleAppend: first:6 last:8, len:3, m.Index:8, lenAppend:0[0m
+2022/03/16 09:45:05.447072 raft.go:697: [0;37m[info] ++---- 2 handleAppend: logTerm:10, m.LogTerm:10[0m
+2022/03/16 09:45:05.446914 raft.go:697: [0;37m[info] ++---- 3 handleAppend: logTerm:9, m.LogTerm:9[0m
+2022/03/16 09:45:05.447134 raft.go:751: [0;37m[info] &&&4: 3 sendAppenResponse:[0m
+2022/03/16 09:45:05.447158 raft.go:675: [0;37m[info] --+ 3 handleAppend, Lead: 1[0m
+2022/03/16 09:45:05.447171 raft.go:694: [0;37m[info] ++---- 3 handleAppend: first:6 last:8, len:3, m.Index:8, lenAppend:1[0m
+2022/03/16 09:45:05.447189 raft.go:697: [0;37m[info] ++---- 3 handleAppend: logTerm:10, m.LogTerm:10[0m
+2022/03/16 09:45:05.447124 raft.go:751: [0;37m[info] &&&4: 2 sendAppenResponse:[0m
+2022/03/16 09:45:05.447207 raft.go:751: [0;37m[info] &&&4: 3 sendAppenResponse:[0m
+2022/03/16 09:45:05.446937 raft.go:675: [0;37m[info] --+ 5 handleAppend, Lead: 1[0m
+2022/03/16 09:45:05.447249 rawnode.go:205: [0;37m[info] --- hasReady: 3 hardState changed[0m
+2022/03/16 09:45:05.447227 raft.go:675: [0;37m[info] --+ 2 handleAppend, Lead: 1[0m
+2022/03/16 09:45:05.447268 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:05.447275 raft.go:694: [0;37m[info] ++---- 2 handleAppend: first:6 last:8, len:3, m.Index:8, lenAppend:1[0m
+2022/03/16 09:45:05.447293 raft.go:697: [0;37m[info] ++---- 2 handleAppend: logTerm:10, m.LogTerm:10[0m
+2022/03/16 09:45:05.447310 raft.go:751: [0;37m[info] &&&4: 2 sendAppenResponse:[0m
+2022/03/16 09:45:05.447325 rawnode.go:205: [0;37m[info] --- hasReady: 2 hardState changed[0m
+2022/03/16 09:45:05.447340 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:05.447249 raft.go:694: [0;37m[info] ++---- 5 handleAppend: first:6 last:8, len:3, m.Index:7, lenAppend:1[0m
+2022/03/16 09:45:05.447415 raft.go:697: [0;37m[info] ++---- 5 handleAppend: logTerm:9, m.LogTerm:9[0m
+2022/03/16 09:45:05.447431 raft.go:751: [0;37m[info] &&&4: 5 sendAppenResponse:[0m
+2022/03/16 09:45:05.447444 raft.go:675: [0;37m[info] --+ 5 handleAppend, Lead: 1[0m
+2022/03/16 09:45:05.447453 raft.go:694: [0;37m[info] ++---- 5 handleAppend: first:6 last:8, len:3, m.Index:8, lenAppend:1[0m
+2022/03/16 09:45:05.447464 raft.go:697: [0;37m[info] ++---- 5 handleAppend: logTerm:10, m.LogTerm:10[0m
+2022/03/16 09:45:05.447473 raft.go:751: [0;37m[info] &&&4: 5 sendAppenResponse:[0m
+2022/03/16 09:45:05.447490 rawnode.go:205: [0;37m[info] --- hasReady: 5 hardState changed[0m
+2022/03/16 09:45:05.447500 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:05.452729 raft.go:1064: [0;37m[info] 1 handleTransferleader, match: to 1, leadTransferee:1[0m
+2022/03/16 09:45:05.452748 raft.go:788: [0;37m[info] 1 handleAP 2 Response:match:9, next:10[0m
+2022/03/16 09:45:05.452764 raft.go:788: [0;37m[info] 1 handleAP 5 Response:match:9, next:10[0m
+2022/03/16 09:45:05.452775 raft.go:274: [0;37m[info] ****+++ 1 &&&6 sendAppend: to 2[0m
+2022/03/16 09:45:05.452782 raft.go:275: [0;37m[info] prevLogIndex:9, r.RaftLog.firstIndex:6[0m
+2022/03/16 09:45:05.452791 raft.go:276: [0;37m[info] r.Prs.Match: 9, r.Prs.Next: 10[0m
+2022/03/16 09:45:05.452801 raft.go:311: [0;37m[info] 1 sendAppend to 2: entfirst:6, entlast:9,len:4,next:10,index:9[0m
+2022/03/16 09:45:05.452819 raft.go:274: [0;37m[info] ****+++ 1 &&&6 sendAppend: to 3[0m
+2022/03/16 09:45:05.452826 raft.go:275: [0;37m[info] prevLogIndex:8, r.RaftLog.firstIndex:6[0m
+2022/03/16 09:45:05.452833 raft.go:276: [0;37m[info] r.Prs.Match: 8, r.Prs.Next: 9[0m
+2022/03/16 09:45:05.452843 raft.go:311: [0;37m[info] 1 sendAppend to 3: entfirst:6, entlast:9,len:4,next:9,index:8[0m
+2022/03/16 09:45:05.452860 raft.go:274: [0;37m[info] ****+++ 1 &&&6 sendAppend: to 4[0m
+2022/03/16 09:45:05.452867 raft.go:275: [0;37m[info] prevLogIndex:8, r.RaftLog.firstIndex:6[0m
+2022/03/16 09:45:05.452874 raft.go:276: [0;37m[info] r.Prs.Match: 8, r.Prs.Next: 9[0m
+2022/03/16 09:45:05.452885 raft.go:311: [0;37m[info] 1 sendAppend to 4: entfirst:6, entlast:9,len:4,next:9,index:8[0m
+2022/03/16 09:45:05.452897 raft.go:274: [0;37m[info] ****+++ 1 &&&6 sendAppend: to 5[0m
+2022/03/16 09:45:05.452903 raft.go:275: [0;37m[info] prevLogIndex:9, r.RaftLog.firstIndex:6[0m
+2022/03/16 09:45:05.452910 raft.go:276: [0;37m[info] r.Prs.Match: 9, r.Prs.Next: 10[0m
+2022/03/16 09:45:05.452919 raft.go:311: [0;37m[info] 1 sendAppend to 5: entfirst:6, entlast:9,len:4,next:10,index:9[0m
+2022/03/16 09:45:05.452931 rawnode.go:205: [0;37m[info] --- hasReady: 1 hardState changed[0m
+2022/03/16 09:45:05.452944 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:05.458692 raft.go:675: [0;37m[info] --+ 3 handleAppend, Lead: 1[0m
+2022/03/16 09:45:05.458711 raft.go:675: [0;37m[info] --+ 5 handleAppend, Lead: 1[0m
+2022/03/16 09:45:05.458727 raft.go:694: [0;37m[info] ++---- 5 handleAppend: first:6 last:9, len:4, m.Index:9, lenAppend:0[0m
+2022/03/16 09:45:05.458739 raft.go:697: [0;37m[info] ++---- 5 handleAppend: logTerm:11, m.LogTerm:11[0m
+2022/03/16 09:45:05.458749 raft.go:751: [0;37m[info] &&&4: 5 sendAppenResponse:[0m
+2022/03/16 09:45:05.458759 rawnode.go:205: [0;37m[info] --- hasReady: 5 hardState changed[0m
+2022/03/16 09:45:05.458767 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:05.458710 raft.go:694: [0;37m[info] ++---- 3 handleAppend: first:6 last:9, len:4, m.Index:8, lenAppend:1[0m
+2022/03/16 09:45:05.458794 raft.go:697: [0;37m[info] ++---- 3 handleAppend: logTerm:10, m.LogTerm:10[0m
+2022/03/16 09:45:05.458807 raft.go:751: [0;37m[info] &&&4: 3 sendAppenResponse:[0m
+2022/03/16 09:45:05.458824 rawnode.go:205: [0;37m[info] --- hasReady: 3 hardState changed[0m
+2022/03/16 09:45:05.458833 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:05.458693 raft.go:675: [0;37m[info] --+ 4 handleAppend, Lead: 1[0m
+2022/03/16 09:45:05.458852 raft.go:694: [0;37m[info] ++---- 4 handleAppend: first:6 last:9, len:4, m.Index:8, lenAppend:1[0m
+2022/03/16 09:45:05.458869 raft.go:697: [0;37m[info] ++---- 4 handleAppend: logTerm:10, m.LogTerm:10[0m
+2022/03/16 09:45:05.458884 raft.go:751: [0;37m[info] &&&4: 4 sendAppenResponse:[0m
+2022/03/16 09:45:05.458711 raft.go:675: [0;37m[info] --+ 2 handleAppend, Lead: 1[0m
+2022/03/16 09:45:05.458924 raft.go:694: [0;37m[info] ++---- 2 handleAppend: first:6 last:9, len:4, m.Index:9, lenAppend:0[0m
+2022/03/16 09:45:05.458947 raft.go:697: [0;37m[info] ++---- 2 handleAppend: logTerm:11, m.LogTerm:11[0m
+2022/03/16 09:45:05.458966 raft.go:751: [0;37m[info] &&&4: 2 sendAppenResponse:[0m
+2022/03/16 09:45:05.458905 rawnode.go:205: [0;37m[info] --- hasReady: 4 hardState changed[0m
+2022/03/16 09:45:05.458984 rawnode.go:205: [0;37m[info] --- hasReady: 2 hardState changed[0m
+2022/03/16 09:45:05.458999 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:05.458991 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:05.464040 raft.go:788: [0;37m[info] 1 handleAP 3 Response:match:9, next:10[0m
+2022/03/16 09:45:05.464059 raft.go:788: [0;37m[info] 1 handleAP 4 Response:match:9, next:10[0m
+2022/03/16 09:45:05.464070 raft.go:1042: [0;37m[info] 1 handleTransferleader, transfer to self[0m
+2022/03/16 09:45:05.464082 raft.go:459: [0;37m[info] ++ 1 becomeCadidate[0m
+2022/03/16 09:45:05.464089 raft.go:480: [0;37m[info] +++ 1 becomeLeader[0m
+2022/03/16 09:45:05.464101 raft.go:274: [0;37m[info] ****+++ 1 &&&6 sendAppend: to 2[0m
+2022/03/16 09:45:05.464110 raft.go:275: [0;37m[info] prevLogIndex:9, r.RaftLog.firstIndex:6[0m
+2022/03/16 09:45:05.464118 raft.go:276: [0;37m[info] r.Prs.Match: 9, r.Prs.Next: 10[0m
+2022/03/16 09:45:05.464129 raft.go:311: [0;37m[info] 1 sendAppend to 2: entfirst:6, entlast:10,len:5,next:10,index:9[0m
+2022/03/16 09:45:05.464142 raft.go:274: [0;37m[info] ****+++ 1 &&&6 sendAppend: to 3[0m
+2022/03/16 09:45:05.464149 raft.go:275: [0;37m[info] prevLogIndex:9, r.RaftLog.firstIndex:6[0m
+2022/03/16 09:45:05.464157 raft.go:276: [0;37m[info] r.Prs.Match: 9, r.Prs.Next: 10[0m
+2022/03/16 09:45:05.464166 raft.go:311: [0;37m[info] 1 sendAppend to 3: entfirst:6, entlast:10,len:5,next:10,index:9[0m
+2022/03/16 09:45:05.464179 raft.go:274: [0;37m[info] ****+++ 1 &&&6 sendAppend: to 4[0m
+2022/03/16 09:45:05.464186 raft.go:275: [0;37m[info] prevLogIndex:9, r.RaftLog.firstIndex:6[0m
+2022/03/16 09:45:05.464202 raft.go:276: [0;37m[info] r.Prs.Match: 9, r.Prs.Next: 10[0m
+2022/03/16 09:45:05.464218 raft.go:311: [0;37m[info] 1 sendAppend to 4: entfirst:6, entlast:10,len:5,next:10,index:9[0m
+2022/03/16 09:45:05.464231 raft.go:274: [0;37m[info] ****+++ 1 &&&6 sendAppend: to 5[0m
+2022/03/16 09:45:05.464238 raft.go:275: [0;37m[info] prevLogIndex:9, r.RaftLog.firstIndex:6[0m
+2022/03/16 09:45:05.464256 raft.go:276: [0;37m[info] r.Prs.Match: 9, r.Prs.Next: 10[0m
+2022/03/16 09:45:05.464265 raft.go:311: [0;37m[info] 1 sendAppend to 5: entfirst:6, entlast:10,len:5,next:10,index:9[0m
+2022/03/16 09:45:05.464291 rawnode.go:205: [0;37m[info] --- hasReady: 1 hardState changed[0m
+2022/03/16 09:45:05.464303 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:05.469279 raft.go:675: [0;37m[info] --+ 4 handleAppend, Lead: 1[0m
+2022/03/16 09:45:05.469295 raft.go:694: [0;37m[info] ++---- 4 handleAppend: first:6 last:9, len:4, m.Index:9, lenAppend:1[0m
+2022/03/16 09:45:05.469304 raft.go:697: [0;37m[info] ++---- 4 handleAppend: logTerm:11, m.LogTerm:11[0m
+2022/03/16 09:45:05.469313 raft.go:751: [0;37m[info] &&&4: 4 sendAppenResponse:[0m
+2022/03/16 09:45:05.469321 rawnode.go:205: [0;37m[info] --- hasReady: 4 hardState changed[0m
+2022/03/16 09:45:05.469329 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:05.469336 raft.go:675: [0;37m[info] --+ 3 handleAppend, Lead: 1[0m
+2022/03/16 09:45:05.469357 raft.go:694: [0;37m[info] ++---- 3 handleAppend: first:6 last:9, len:4, m.Index:9, lenAppend:1[0m
+2022/03/16 09:45:05.469369 raft.go:1064: [0;37m[info] 1 handleTransferleader, match: to 1, leadTransferee:1[0m
+2022/03/16 09:45:05.469393 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:05.469282 raft.go:675: [0;37m[info] --+ 2 handleAppend, Lead: 1[0m
+2022/03/16 09:45:05.469454 raft.go:694: [0;37m[info] ++---- 2 handleAppend: first:6 last:9, len:4, m.Index:9, lenAppend:1[0m
+2022/03/16 09:45:05.469480 raft.go:697: [0;37m[info] ++---- 2 handleAppend: logTerm:11, m.LogTerm:11[0m
+2022/03/16 09:45:05.469503 raft.go:751: [0;37m[info] &&&4: 2 sendAppenResponse:[0m
+2022/03/16 09:45:05.469372 raft.go:697: [0;37m[info] ++---- 3 handleAppend: logTerm:11, m.LogTerm:11[0m
+2022/03/16 09:45:05.469522 rawnode.go:205: [0;37m[info] --- hasReady: 2 hardState changed[0m
+2022/03/16 09:45:05.469537 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:05.469538 raft.go:751: [0;37m[info] &&&4: 3 sendAppenResponse:[0m
+2022/03/16 09:45:05.469552 rawnode.go:205: [0;37m[info] --- hasReady: 3 hardState changed[0m
+2022/03/16 09:45:05.469562 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:05.471771 raft.go:675: [0;37m[info] --+ 5 handleAppend, Lead: 1[0m
+2022/03/16 09:45:05.471784 raft.go:694: [0;37m[info] ++---- 5 handleAppend: first:6 last:9, len:4, m.Index:9, lenAppend:1[0m
+2022/03/16 09:45:05.471795 raft.go:697: [0;37m[info] ++---- 5 handleAppend: logTerm:11, m.LogTerm:11[0m
+2022/03/16 09:45:05.471822 raft.go:751: [0;37m[info] &&&4: 5 sendAppenResponse:[0m
+2022/03/16 09:45:05.471833 rawnode.go:205: [0;37m[info] --- hasReady: 5 hardState changed[0m
+2022/03/16 09:45:05.471844 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:05.476442 raft.go:788: [0;37m[info] 1 handleAP 4 Response:match:10, next:11[0m
+2022/03/16 09:45:05.476497 raft.go:788: [0;37m[info] 1 handleAP 3 Response:match:10, next:11[0m
+2022/03/16 09:45:05.476513 raft.go:274: [0;37m[info] ****+++ 1 &&&6 sendAppend: to 2[0m
+2022/03/16 09:45:05.476540 raft.go:275: [0;37m[info] prevLogIndex:9, r.RaftLog.firstIndex:6[0m
+2022/03/16 09:45:05.476545 raft.go:276: [0;37m[info] r.Prs.Match: 9, r.Prs.Next: 10[0m
+2022/03/16 09:45:05.476551 raft.go:311: [0;37m[info] 1 sendAppend to 2: entfirst:6, entlast:10,len:5,next:10,index:9[0m
+2022/03/16 09:45:05.476559 raft.go:274: [0;37m[info] ****+++ 1 &&&6 sendAppend: to 3[0m
+2022/03/16 09:45:05.476563 raft.go:275: [0;37m[info] prevLogIndex:10, r.RaftLog.firstIndex:6[0m
+2022/03/16 09:45:05.476568 raft.go:276: [0;37m[info] r.Prs.Match: 10, r.Prs.Next: 11[0m
+2022/03/16 09:45:05.476573 raft.go:311: [0;37m[info] 1 sendAppend to 3: entfirst:6, entlast:10,len:5,next:11,index:10[0m
+2022/03/16 09:45:05.476580 raft.go:274: [0;37m[info] ****+++ 1 &&&6 sendAppend: to 4[0m
+2022/03/16 09:45:05.476584 raft.go:275: [0;37m[info] prevLogIndex:10, r.RaftLog.firstIndex:6[0m
+2022/03/16 09:45:05.476589 raft.go:276: [0;37m[info] r.Prs.Match: 10, r.Prs.Next: 11[0m
+2022/03/16 09:45:05.476594 raft.go:311: [0;37m[info] 1 sendAppend to 4: entfirst:6, entlast:10,len:5,next:11,index:10[0m
+2022/03/16 09:45:05.476600 raft.go:274: [0;37m[info] ****+++ 1 &&&6 sendAppend: to 5[0m
+2022/03/16 09:45:05.476604 raft.go:275: [0;37m[info] prevLogIndex:9, r.RaftLog.firstIndex:6[0m
+2022/03/16 09:45:05.476611 raft.go:276: [0;37m[info] r.Prs.Match: 9, r.Prs.Next: 10[0m
+2022/03/16 09:45:05.476616 raft.go:311: [0;37m[info] 1 sendAppend to 5: entfirst:6, entlast:10,len:5,next:10,index:9[0m
+2022/03/16 09:45:05.476624 raft.go:788: [0;37m[info] 1 handleAP 2 Response:match:10, next:11[0m
+2022/03/16 09:45:05.476630 raft.go:1042: [0;37m[info] 1 handleTransferleader, transfer to self[0m
+2022/03/16 09:45:05.476639 raft.go:459: [0;37m[info] ++ 1 becomeCadidate[0m
+2022/03/16 09:45:05.476643 raft.go:480: [0;37m[info] +++ 1 becomeLeader[0m
+2022/03/16 09:45:05.476649 raft.go:274: [0;37m[info] ****+++ 1 &&&6 sendAppend: to 3[0m
+2022/03/16 09:45:05.476653 raft.go:275: [0;37m[info] prevLogIndex:10, r.RaftLog.firstIndex:6[0m
+2022/03/16 09:45:05.476657 raft.go:276: [0;37m[info] r.Prs.Match: 10, r.Prs.Next: 11[0m
+2022/03/16 09:45:05.476663 raft.go:311: [0;37m[info] 1 sendAppend to 3: entfirst:6, entlast:11,len:6,next:11,index:10[0m
+2022/03/16 09:45:05.476676 raft.go:274: [0;37m[info] ****+++ 1 &&&6 sendAppend: to 4[0m
+2022/03/16 09:45:05.476681 raft.go:275: [0;37m[info] prevLogIndex:10, r.RaftLog.firstIndex:6[0m
+2022/03/16 09:45:05.476685 raft.go:276: [0;37m[info] r.Prs.Match: 10, r.Prs.Next: 11[0m
+2022/03/16 09:45:05.476690 raft.go:311: [0;37m[info] 1 sendAppend to 4: entfirst:6, entlast:11,len:6,next:11,index:10[0m
+2022/03/16 09:45:05.476698 raft.go:274: [0;37m[info] ****+++ 1 &&&6 sendAppend: to 5[0m
+2022/03/16 09:45:05.476702 raft.go:275: [0;37m[info] prevLogIndex:10, r.RaftLog.firstIndex:6[0m
+2022/03/16 09:45:05.476706 raft.go:276: [0;37m[info] r.Prs.Match: 9, r.Prs.Next: 11[0m
+2022/03/16 09:45:05.476712 raft.go:311: [0;37m[info] 1 sendAppend to 5: entfirst:6, entlast:11,len:6,next:11,index:10[0m
+2022/03/16 09:45:05.476719 raft.go:274: [0;37m[info] ****+++ 1 &&&6 sendAppend: to 2[0m
+2022/03/16 09:45:05.476726 raft.go:275: [0;37m[info] prevLogIndex:10, r.RaftLog.firstIndex:6[0m
+2022/03/16 09:45:05.476731 raft.go:276: [0;37m[info] r.Prs.Match: 10, r.Prs.Next: 11[0m
+2022/03/16 09:45:05.476736 raft.go:311: [0;37m[info] 1 sendAppend to 2: entfirst:6, entlast:11,len:6,next:11,index:10[0m
+2022/03/16 09:45:05.476748 rawnode.go:205: [0;37m[info] --- hasReady: 1 hardState changed[0m
+2022/03/16 09:45:05.476755 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:05.482478 raft.go:675: [0;37m[info] --+ 2 handleAppend, Lead: 1[0m
+2022/03/16 09:45:05.482506 raft.go:694: [0;37m[info] ++---- 2 handleAppend: first:6 last:10, len:5, m.Index:9, lenAppend:1[0m
+2022/03/16 09:45:05.482525 raft.go:675: [0;37m[info] --+ 3 handleAppend, Lead: 1[0m
+2022/03/16 09:45:05.482526 raft.go:697: [0;37m[info] ++---- 2 handleAppend: logTerm:11, m.LogTerm:11[0m
+2022/03/16 09:45:05.482543 raft.go:751: [0;37m[info] &&&4: 2 sendAppenResponse:[0m
+2022/03/16 09:45:05.482549 raft.go:694: [0;37m[info] ++---- 3 handleAppend: first:6 last:10, len:5, m.Index:10, lenAppend:0[0m
+2022/03/16 09:45:05.482564 raft.go:697: [0;37m[info] ++---- 3 handleAppend: logTerm:12, m.LogTerm:12[0m
+2022/03/16 09:45:05.482557 rawnode.go:205: [0;37m[info] --- hasReady: 2 hardState changed[0m
+2022/03/16 09:45:05.482565 raft.go:675: [0;37m[info] --+ 5 handleAppend, Lead: 1[0m
+2022/03/16 09:45:05.482600 raft.go:694: [0;37m[info] ++---- 5 handleAppend: first:6 last:10, len:5, m.Index:9, lenAppend:1[0m
+2022/03/16 09:45:05.482639 raft.go:697: [0;37m[info] ++---- 5 handleAppend: logTerm:11, m.LogTerm:11[0m
+2022/03/16 09:45:05.482667 raft.go:751: [0;37m[info] &&&4: 5 sendAppenResponse:[0m
+2022/03/16 09:45:05.482696 raft.go:675: [0;37m[info] --+ 5 handleAppend, Lead: 1[0m
+2022/03/16 09:45:05.482714 raft.go:694: [0;37m[info] ++---- 5 handleAppend: first:6 last:10, len:5, m.Index:10, lenAppend:1[0m
+2022/03/16 09:45:05.482576 raft.go:751: [0;37m[info] &&&4: 3 sendAppenResponse:[0m
+2022/03/16 09:45:05.482513 raft.go:675: [0;37m[info] --+ 4 handleAppend, Lead: 1[0m
+2022/03/16 09:45:05.482789 raft.go:694: [0;37m[info] ++---- 4 handleAppend: first:6 last:10, len:5, m.Index:10, lenAppend:0[0m
+2022/03/16 09:45:05.482817 raft.go:697: [0;37m[info] ++---- 4 handleAppend: logTerm:12, m.LogTerm:12[0m
+2022/03/16 09:45:05.482836 raft.go:751: [0;37m[info] &&&4: 4 sendAppenResponse:[0m
+2022/03/16 09:45:05.482870 raft.go:675: [0;37m[info] --+ 4 handleAppend, Lead: 1[0m
+2022/03/16 09:45:05.482739 raft.go:697: [0;37m[info] ++---- 5 handleAppend: logTerm:12, m.LogTerm:12[0m
+2022/03/16 09:45:05.482901 raft.go:751: [0;37m[info] &&&4: 5 sendAppenResponse:[0m
+2022/03/16 09:45:05.482913 rawnode.go:205: [0;37m[info] --- hasReady: 5 hardState changed[0m
+2022/03/16 09:45:05.482920 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:05.482582 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:05.482883 raft.go:694: [0;37m[info] ++---- 4 handleAppend: first:6 last:10, len:5, m.Index:10, lenAppend:1[0m
+2022/03/16 09:45:05.482999 raft.go:697: [0;37m[info] ++---- 4 handleAppend: logTerm:12, m.LogTerm:12[0m
+2022/03/16 09:45:05.482776 raft.go:675: [0;37m[info] --+ 3 handleAppend, Lead: 1[0m
+2022/03/16 09:45:05.483042 raft.go:751: [0;37m[info] &&&4: 4 sendAppenResponse:[0m
+2022/03/16 09:45:05.483061 rawnode.go:205: [0;37m[info] --- hasReady: 4 hardState changed[0m
+2022/03/16 09:45:05.483055 raft.go:694: [0;37m[info] ++---- 3 handleAppend: first:6 last:10, len:5, m.Index:10, lenAppend:1[0m
+2022/03/16 09:45:05.483081 raft.go:697: [0;37m[info] ++---- 3 handleAppend: logTerm:12, m.LogTerm:12[0m
+2022/03/16 09:45:05.483093 raft.go:751: [0;37m[info] &&&4: 3 sendAppenResponse:[0m
+2022/03/16 09:45:05.483109 rawnode.go:205: [0;37m[info] --- hasReady: 3 hardState changed[0m
+2022/03/16 09:45:05.483122 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:05.483075 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:05.488289 raft.go:1064: [0;37m[info] 1 handleTransferleader, match: to 1, leadTransferee:1[0m
+2022/03/16 09:45:05.488323 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:05.488426 test_test.go:563: [0;37m[info] start remove[0m
+2022/03/16 09:45:05.490941 raft.go:675: [0;37m[info] --+ 2 handleAppend, Lead: 1[0m
+2022/03/16 09:45:05.490960 raft.go:694: [0;37m[info] ++---- 2 handleAppend: first:6 last:10, len:5, m.Index:10, lenAppend:1[0m
+2022/03/16 09:45:05.490977 raft.go:697: [0;37m[info] ++---- 2 handleAppend: logTerm:12, m.LogTerm:12[0m
+2022/03/16 09:45:05.490991 raft.go:751: [0;37m[info] &&&4: 2 sendAppenResponse:[0m
+2022/03/16 09:45:05.491011 rawnode.go:205: [0;37m[info] --- hasReady: 2 hardState changed[0m
+2022/03/16 09:45:05.491024 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:05.494080 raft.go:788: [0;37m[info] 1 handleAP 4 Response:match:11, next:12[0m
+2022/03/16 09:45:05.494115 raft.go:788: [0;37m[info] 1 handleAP 3 Response:match:11, next:12[0m
+2022/03/16 09:45:05.494128 raft.go:274: [0;37m[info] ****+++ 1 &&&6 sendAppend: to 2[0m
+2022/03/16 09:45:05.494137 raft.go:275: [0;37m[info] prevLogIndex:10, r.RaftLog.firstIndex:6[0m
+2022/03/16 09:45:05.494146 raft.go:276: [0;37m[info] r.Prs.Match: 10, r.Prs.Next: 11[0m
+2022/03/16 09:45:05.494160 raft.go:311: [0;37m[info] 1 sendAppend to 2: entfirst:6, entlast:11,len:6,next:11,index:10[0m
+2022/03/16 09:45:05.494175 raft.go:274: [0;37m[info] ****+++ 1 &&&6 sendAppend: to 3[0m
+2022/03/16 09:45:05.494184 raft.go:275: [0;37m[info] prevLogIndex:11, r.RaftLog.firstIndex:6[0m
+2022/03/16 09:45:05.494192 raft.go:276: [0;37m[info] r.Prs.Match: 11, r.Prs.Next: 12[0m
+2022/03/16 09:45:05.494203 raft.go:311: [0;37m[info] 1 sendAppend to 3: entfirst:6, entlast:11,len:6,next:12,index:11[0m
+2022/03/16 09:45:05.494216 raft.go:274: [0;37m[info] ****+++ 1 &&&6 sendAppend: to 4[0m
+2022/03/16 09:45:05.494224 raft.go:275: [0;37m[info] prevLogIndex:11, r.RaftLog.firstIndex:6[0m
+2022/03/16 09:45:05.494232 raft.go:276: [0;37m[info] r.Prs.Match: 11, r.Prs.Next: 12[0m
+2022/03/16 09:45:05.494268 raft.go:311: [0;37m[info] 1 sendAppend to 4: entfirst:6, entlast:11,len:6,next:12,index:11[0m
+2022/03/16 09:45:05.494281 raft.go:274: [0;37m[info] ****+++ 1 &&&6 sendAppend: to 5[0m
+2022/03/16 09:45:05.494288 raft.go:275: [0;37m[info] prevLogIndex:10, r.RaftLog.firstIndex:6[0m
+2022/03/16 09:45:05.494297 raft.go:276: [0;37m[info] r.Prs.Match: 9, r.Prs.Next: 11[0m
+2022/03/16 09:45:05.494322 raft.go:311: [0;37m[info] 1 sendAppend to 5: entfirst:6, entlast:11,len:6,next:11,index:10[0m
+2022/03/16 09:45:05.494339 raft.go:788: [0;37m[info] 1 handleAP 5 Response:match:11, next:12[0m
+2022/03/16 09:45:05.494353 rawnode.go:205: [0;37m[info] --- hasReady: 1 hardState changed[0m
+2022/03/16 09:45:05.494368 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:05.499499 raft.go:675: [0;37m[info] --+ 3 handleAppend, Lead: 1[0m
+2022/03/16 09:45:05.499529 raft.go:675: [0;37m[info] --+ 4 handleAppend, Lead: 1[0m
+2022/03/16 09:45:05.499527 raft.go:694: [0;37m[info] ++---- 3 handleAppend: first:6 last:11, len:6, m.Index:11, lenAppend:0[0m
+2022/03/16 09:45:05.499547 raft.go:675: [0;37m[info] --+ 5 handleAppend, Lead: 1[0m
+2022/03/16 09:45:05.499587 raft.go:694: [0;37m[info] ++---- 5 handleAppend: first:6 last:11, len:6, m.Index:10, lenAppend:1[0m
+2022/03/16 09:45:05.499610 raft.go:697: [0;37m[info] ++---- 5 handleAppend: logTerm:12, m.LogTerm:12[0m
+2022/03/16 09:45:05.499547 raft.go:697: [0;37m[info] ++---- 3 handleAppend: logTerm:13, m.LogTerm:13[0m
+2022/03/16 09:45:05.499629 raft.go:751: [0;37m[info] &&&4: 5 sendAppenResponse:[0m
+2022/03/16 09:45:05.499646 rawnode.go:205: [0;37m[info] --- hasReady: 5 hardState changed[0m
+2022/03/16 09:45:05.499650 raft.go:751: [0;37m[info] &&&4: 3 sendAppenResponse:[0m
+2022/03/16 09:45:05.499670 rawnode.go:205: [0;37m[info] --- hasReady: 3 hardState changed[0m
+2022/03/16 09:45:05.499688 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:05.499530 raft.go:675: [0;37m[info] --+ 2 handleAppend, Lead: 1[0m
+2022/03/16 09:45:05.499734 raft.go:694: [0;37m[info] ++---- 2 handleAppend: first:6 last:11, len:6, m.Index:10, lenAppend:1[0m
+2022/03/16 09:45:05.499757 raft.go:697: [0;37m[info] ++---- 2 handleAppend: logTerm:12, m.LogTerm:12[0m
+2022/03/16 09:45:05.499768 raft.go:751: [0;37m[info] &&&4: 2 sendAppenResponse:[0m
+2022/03/16 09:45:05.499775 rawnode.go:205: [0;37m[info] --- hasReady: 2 hardState changed[0m
+2022/03/16 09:45:05.499784 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:05.499662 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:05.499541 raft.go:694: [0;37m[info] ++---- 4 handleAppend: first:6 last:11, len:6, m.Index:11, lenAppend:0[0m
+2022/03/16 09:45:05.499892 raft.go:697: [0;37m[info] ++---- 4 handleAppend: logTerm:13, m.LogTerm:13[0m
+2022/03/16 09:45:05.499907 raft.go:751: [0;37m[info] &&&4: 4 sendAppenResponse:[0m
+2022/03/16 09:45:05.499920 rawnode.go:205: [0;37m[info] --- hasReady: 4 hardState changed[0m
+2022/03/16 09:45:05.499934 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:05.505016 raft.go:788: [0;37m[info] 1 handleAP 2 Response:match:11, next:12[0m
+2022/03/16 09:45:05.535687 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:05.540887 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:05.540913 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:05.540887 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:05.540905 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:05.585661 peer_msg_handler.go:560: [0;37m[info] 1 propose ChangePeer: rengion.ConfVer:1 [0m
+2022/03/16 09:45:05.585713 rawnode.go:125: [0;37m[info] 1 rawnode:ProposeConfChange[0m
+2022/03/16 09:45:05.585724 rawnode.go:126: [0;37m[info] leadtransferee:1[0m
+2022/03/16 09:45:05.635681 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:05.639667 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:05.639699 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:05.639671 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:05.639710 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:05.685713 peer_msg_handler.go:560: [0;37m[info] 1 propose ChangePeer: rengion.ConfVer:1 [0m
+2022/03/16 09:45:05.685752 rawnode.go:125: [0;37m[info] 1 rawnode:ProposeConfChange[0m
+2022/03/16 09:45:05.685764 rawnode.go:126: [0;37m[info] leadtransferee:1[0m
+2022/03/16 09:45:05.735681 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:05.739016 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:05.739040 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:05.739021 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:05.739048 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:05.785751 peer_msg_handler.go:560: [0;37m[info] 1 propose ChangePeer: rengion.ConfVer:1 [0m
+2022/03/16 09:45:05.785783 rawnode.go:125: [0;37m[info] 1 rawnode:ProposeConfChange[0m
+2022/03/16 09:45:05.785794 rawnode.go:126: [0;37m[info] leadtransferee:1[0m
+2022/03/16 09:45:05.835667 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:05.840075 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:05.840098 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:05.840097 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:05.840085 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:05.885681 peer_msg_handler.go:560: [0;37m[info] 1 propose ChangePeer: rengion.ConfVer:1 [0m
+2022/03/16 09:45:05.885719 rawnode.go:125: [0;37m[info] 1 rawnode:ProposeConfChange[0m
+2022/03/16 09:45:05.885729 rawnode.go:126: [0;37m[info] leadtransferee:1[0m
+2022/03/16 09:45:05.935639 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:05.939417 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:05.939445 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:05.939487 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:05.939533 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:05.985721 peer_msg_handler.go:560: [0;37m[info] 1 propose ChangePeer: rengion.ConfVer:1 [0m
+2022/03/16 09:45:05.985752 rawnode.go:125: [0;37m[info] 1 rawnode:ProposeConfChange[0m
+2022/03/16 09:45:05.985762 rawnode.go:126: [0;37m[info] leadtransferee:1[0m
+2022/03/16 09:45:06.035666 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:06.038814 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:06.038841 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:06.038935 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:06.038954 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:06.085677 peer_msg_handler.go:560: [0;37m[info] 1 propose ChangePeer: rengion.ConfVer:1 [0m
+2022/03/16 09:45:06.085695 rawnode.go:125: [0;37m[info] 1 rawnode:ProposeConfChange[0m
+2022/03/16 09:45:06.085702 rawnode.go:126: [0;37m[info] leadtransferee:1[0m
+2022/03/16 09:45:06.135676 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:06.139164 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:06.139165 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:06.139169 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:06.139154 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:06.185677 peer_msg_handler.go:560: [0;37m[info] 1 propose ChangePeer: rengion.ConfVer:1 [0m
+2022/03/16 09:45:06.185706 rawnode.go:125: [0;37m[info] 1 rawnode:ProposeConfChange[0m
+2022/03/16 09:45:06.185716 rawnode.go:126: [0;37m[info] leadtransferee:1[0m
+2022/03/16 09:45:06.235633 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:06.238820 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:06.238840 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:06.238872 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:06.238856 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:06.285733 peer_msg_handler.go:560: [0;37m[info] 1 propose ChangePeer: rengion.ConfVer:1 [0m
+2022/03/16 09:45:06.285767 rawnode.go:125: [0;37m[info] 1 rawnode:ProposeConfChange[0m
+2022/03/16 09:45:06.285778 rawnode.go:126: [0;37m[info] leadtransferee:1[0m
+2022/03/16 09:45:06.335689 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:06.340835 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:06.340868 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:06.340888 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:06.340877 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:06.385678 peer_msg_handler.go:560: [0;37m[info] 1 propose ChangePeer: rengion.ConfVer:1 [0m
+2022/03/16 09:45:06.385709 rawnode.go:125: [0;37m[info] 1 rawnode:ProposeConfChange[0m
+2022/03/16 09:45:06.385719 rawnode.go:126: [0;37m[info] leadtransferee:1[0m
+2022/03/16 09:45:06.435690 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:06.440848 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:06.440887 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:06.440911 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:06.440900 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:06.485698 peer_msg_handler.go:560: [0;37m[info] 1 propose ChangePeer: rengion.ConfVer:1 [0m
+2022/03/16 09:45:06.485728 rawnode.go:125: [0;37m[info] 1 rawnode:ProposeConfChange[0m
+2022/03/16 09:45:06.485739 rawnode.go:126: [0;37m[info] leadtransferee:1[0m
+2022/03/16 09:45:06.535684 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:06.539519 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:06.539552 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:06.539552 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:06.539543 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:06.585682 peer_msg_handler.go:560: [0;37m[info] 1 propose ChangePeer: rengion.ConfVer:1 [0m
+2022/03/16 09:45:06.585713 rawnode.go:125: [0;37m[info] 1 rawnode:ProposeConfChange[0m
+2022/03/16 09:45:06.585723 rawnode.go:126: [0;37m[info] leadtransferee:1[0m
+2022/03/16 09:45:06.635679 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:06.639439 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:06.639440 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:06.639446 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:06.639455 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:06.685720 peer_msg_handler.go:560: [0;37m[info] 1 propose ChangePeer: rengion.ConfVer:1 [0m
+2022/03/16 09:45:06.685745 rawnode.go:125: [0;37m[info] 1 rawnode:ProposeConfChange[0m
+2022/03/16 09:45:06.685750 rawnode.go:126: [0;37m[info] leadtransferee:1[0m
+2022/03/16 09:45:06.735690 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:06.739858 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:06.739874 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:06.739868 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:06.739872 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:06.785695 peer_msg_handler.go:560: [0;37m[info] 1 propose ChangePeer: rengion.ConfVer:1 [0m
+2022/03/16 09:45:06.785732 rawnode.go:125: [0;37m[info] 1 rawnode:ProposeConfChange[0m
+2022/03/16 09:45:06.785743 rawnode.go:126: [0;37m[info] leadtransferee:1[0m
+2022/03/16 09:45:06.835634 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:06.838745 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:06.838760 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:06.838764 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:06.838767 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:06.885717 peer_msg_handler.go:560: [0;37m[info] 1 propose ChangePeer: rengion.ConfVer:1 [0m
+2022/03/16 09:45:06.885747 rawnode.go:125: [0;37m[info] 1 rawnode:ProposeConfChange[0m
+2022/03/16 09:45:06.885757 rawnode.go:126: [0;37m[info] leadtransferee:1[0m
+2022/03/16 09:45:06.935677 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:06.940994 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:06.941016 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:06.941027 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:06.941070 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:06.985667 peer_msg_handler.go:560: [0;37m[info] 1 propose ChangePeer: rengion.ConfVer:1 [0m
+2022/03/16 09:45:06.985695 rawnode.go:125: [0;37m[info] 1 rawnode:ProposeConfChange[0m
+2022/03/16 09:45:06.985706 rawnode.go:126: [0;37m[info] leadtransferee:1[0m
+2022/03/16 09:45:07.035639 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:07.039180 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:07.039190 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:07.039202 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:07.039177 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:07.085678 peer_msg_handler.go:560: [0;37m[info] 1 propose ChangePeer: rengion.ConfVer:1 [0m
+2022/03/16 09:45:07.085700 rawnode.go:125: [0;37m[info] 1 rawnode:ProposeConfChange[0m
+2022/03/16 09:45:07.085707 rawnode.go:126: [0;37m[info] leadtransferee:1[0m
+2022/03/16 09:45:07.135646 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:07.139659 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:07.139683 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:07.139664 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:07.139668 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:07.185725 peer_msg_handler.go:560: [0;37m[info] 1 propose ChangePeer: rengion.ConfVer:1 [0m
+2022/03/16 09:45:07.185756 rawnode.go:125: [0;37m[info] 1 rawnode:ProposeConfChange[0m
+2022/03/16 09:45:07.185766 rawnode.go:126: [0;37m[info] leadtransferee:1[0m
+2022/03/16 09:45:07.235626 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:07.238666 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:07.238705 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:07.238727 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:07.238781 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:07.285636 peer_msg_handler.go:560: [0;37m[info] 1 propose ChangePeer: rengion.ConfVer:1 [0m
+2022/03/16 09:45:07.285652 rawnode.go:125: [0;37m[info] 1 rawnode:ProposeConfChange[0m
+2022/03/16 09:45:07.285657 rawnode.go:126: [0;37m[info] leadtransferee:1[0m
+2022/03/16 09:45:07.335635 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:07.339694 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:07.339712 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:07.339806 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:07.339820 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:07.385670 peer_msg_handler.go:560: [0;37m[info] 1 propose ChangePeer: rengion.ConfVer:1 [0m
+2022/03/16 09:45:07.385701 rawnode.go:125: [0;37m[info] 1 rawnode:ProposeConfChange[0m
+2022/03/16 09:45:07.385711 rawnode.go:126: [0;37m[info] leadtransferee:1[0m
+2022/03/16 09:45:07.435644 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:07.439632 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:07.439651 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:07.439684 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:07.439642 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:07.485718 peer_msg_handler.go:560: [0;37m[info] 1 propose ChangePeer: rengion.ConfVer:1 [0m
+2022/03/16 09:45:07.485751 rawnode.go:125: [0;37m[info] 1 rawnode:ProposeConfChange[0m
+2022/03/16 09:45:07.485761 rawnode.go:126: [0;37m[info] leadtransferee:1[0m
+2022/03/16 09:45:07.535626 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:07.540225 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:07.540242 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:07.540259 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:07.540293 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:07.585673 peer_msg_handler.go:560: [0;37m[info] 1 propose ChangePeer: rengion.ConfVer:1 [0m
+2022/03/16 09:45:07.585704 rawnode.go:125: [0;37m[info] 1 rawnode:ProposeConfChange[0m
+2022/03/16 09:45:07.585714 rawnode.go:126: [0;37m[info] leadtransferee:1[0m
+2022/03/16 09:45:07.635653 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:07.639469 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:07.639473 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:07.639529 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:07.639564 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:07.685665 peer_msg_handler.go:560: [0;37m[info] 1 propose ChangePeer: rengion.ConfVer:1 [0m
+2022/03/16 09:45:07.685683 rawnode.go:125: [0;37m[info] 1 rawnode:ProposeConfChange[0m
+2022/03/16 09:45:07.685689 rawnode.go:126: [0;37m[info] leadtransferee:1[0m
+2022/03/16 09:45:07.735658 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:07.739119 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:07.739137 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:07.739136 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:07.739131 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:07.785741 peer_msg_handler.go:560: [0;37m[info] 1 propose ChangePeer: rengion.ConfVer:1 [0m
+2022/03/16 09:45:07.785772 rawnode.go:125: [0;37m[info] 1 rawnode:ProposeConfChange[0m
+2022/03/16 09:45:07.785782 rawnode.go:126: [0;37m[info] leadtransferee:1[0m
+2022/03/16 09:45:07.835670 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:07.840618 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:07.840666 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:07.840685 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:07.840752 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:07.885694 peer_msg_handler.go:560: [0;37m[info] 1 propose ChangePeer: rengion.ConfVer:1 [0m
+2022/03/16 09:45:07.885726 rawnode.go:125: [0;37m[info] 1 rawnode:ProposeConfChange[0m
+2022/03/16 09:45:07.885737 rawnode.go:126: [0;37m[info] leadtransferee:1[0m
+2022/03/16 09:45:07.935682 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:07.946269 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:07.946334 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:07.946355 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:07.946324 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:07.985675 peer_msg_handler.go:560: [0;37m[info] 1 propose ChangePeer: rengion.ConfVer:1 [0m
+2022/03/16 09:45:07.985690 rawnode.go:125: [0;37m[info] 1 rawnode:ProposeConfChange[0m
+2022/03/16 09:45:07.985696 rawnode.go:126: [0;37m[info] leadtransferee:1[0m
+2022/03/16 09:45:08.035655 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:08.039651 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:08.039680 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:08.039720 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:08.039693 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:08.085687 peer_msg_handler.go:560: [0;37m[info] 1 propose ChangePeer: rengion.ConfVer:1 [0m
+2022/03/16 09:45:08.085704 rawnode.go:125: [0;37m[info] 1 rawnode:ProposeConfChange[0m
+2022/03/16 09:45:08.085710 rawnode.go:126: [0;37m[info] leadtransferee:1[0m
+2022/03/16 09:45:08.135671 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:08.161322 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:08.161349 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:08.161329 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:08.161359 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:08.185712 peer_msg_handler.go:560: [0;37m[info] 1 propose ChangePeer: rengion.ConfVer:1 [0m
+2022/03/16 09:45:08.185761 rawnode.go:125: [0;37m[info] 1 rawnode:ProposeConfChange[0m
+2022/03/16 09:45:08.185777 rawnode.go:126: [0;37m[info] leadtransferee:1[0m
+2022/03/16 09:45:08.235678 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:08.239656 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:08.239667 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:08.239724 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:08.239777 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:08.285678 peer_msg_handler.go:560: [0;37m[info] 1 propose ChangePeer: rengion.ConfVer:1 [0m
+2022/03/16 09:45:08.285706 rawnode.go:125: [0;37m[info] 1 rawnode:ProposeConfChange[0m
+2022/03/16 09:45:08.285716 rawnode.go:126: [0;37m[info] leadtransferee:1[0m
+2022/03/16 09:45:08.335677 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:08.344490 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:08.344546 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:08.344565 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:08.344552 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:08.385673 peer_msg_handler.go:560: [0;37m[info] 1 propose ChangePeer: rengion.ConfVer:1 [0m
+2022/03/16 09:45:08.385691 rawnode.go:125: [0;37m[info] 1 rawnode:ProposeConfChange[0m
+2022/03/16 09:45:08.385697 rawnode.go:126: [0;37m[info] leadtransferee:1[0m
+2022/03/16 09:45:08.435694 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:08.440497 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:08.440516 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:08.440551 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:08.440506 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:08.485670 peer_msg_handler.go:560: [0;37m[info] 1 propose ChangePeer: rengion.ConfVer:1 [0m
+2022/03/16 09:45:08.485700 rawnode.go:125: [0;37m[info] 1 rawnode:ProposeConfChange[0m
+2022/03/16 09:45:08.485711 rawnode.go:126: [0;37m[info] leadtransferee:1[0m
+2022/03/16 09:45:08.535648 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:08.538330 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:08.538344 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:08.538378 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:08.538409 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:08.585711 peer_msg_handler.go:560: [0;37m[info] 1 propose ChangePeer: rengion.ConfVer:1 [0m
+2022/03/16 09:45:08.585740 rawnode.go:125: [0;37m[info] 1 rawnode:ProposeConfChange[0m
+2022/03/16 09:45:08.585750 rawnode.go:126: [0;37m[info] leadtransferee:1[0m
+2022/03/16 09:45:08.635666 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:08.639207 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:08.639217 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:08.639222 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:08.639230 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:08.685688 peer_msg_handler.go:560: [0;37m[info] 1 propose ChangePeer: rengion.ConfVer:1 [0m
+2022/03/16 09:45:08.685713 rawnode.go:125: [0;37m[info] 1 rawnode:ProposeConfChange[0m
+2022/03/16 09:45:08.685720 rawnode.go:126: [0;37m[info] leadtransferee:1[0m
+2022/03/16 09:45:08.735661 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:08.738204 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:08.738224 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:08.738263 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:08.738308 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:08.785685 peer_msg_handler.go:560: [0;37m[info] 1 propose ChangePeer: rengion.ConfVer:1 [0m
+2022/03/16 09:45:08.785749 rawnode.go:125: [0;37m[info] 1 rawnode:ProposeConfChange[0m
+2022/03/16 09:45:08.785759 rawnode.go:126: [0;37m[info] leadtransferee:1[0m
+2022/03/16 09:45:08.835661 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:08.838761 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:08.838787 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:08.838851 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:08.838865 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:08.885650 peer_msg_handler.go:560: [0;37m[info] 1 propose ChangePeer: rengion.ConfVer:1 [0m
+2022/03/16 09:45:08.885677 rawnode.go:125: [0;37m[info] 1 rawnode:ProposeConfChange[0m
+2022/03/16 09:45:08.885685 rawnode.go:126: [0;37m[info] leadtransferee:1[0m
+2022/03/16 09:45:08.935715 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:08.939387 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:08.939452 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:08.939458 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:08.939468 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:08.985709 peer_msg_handler.go:560: [0;37m[info] 1 propose ChangePeer: rengion.ConfVer:1 [0m
+2022/03/16 09:45:08.985761 rawnode.go:125: [0;37m[info] 1 rawnode:ProposeConfChange[0m
+2022/03/16 09:45:08.985772 rawnode.go:126: [0;37m[info] leadtransferee:1[0m
+2022/03/16 09:45:09.035636 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:09.039791 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:09.039817 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:09.039849 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:09.039828 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:09.085690 peer_msg_handler.go:560: [0;37m[info] 1 propose ChangePeer: rengion.ConfVer:1 [0m
+2022/03/16 09:45:09.085717 rawnode.go:125: [0;37m[info] 1 rawnode:ProposeConfChange[0m
+2022/03/16 09:45:09.085725 rawnode.go:126: [0;37m[info] leadtransferee:1[0m
+2022/03/16 09:45:09.135677 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:09.138664 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:09.138694 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:09.138666 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:09.138682 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:09.185690 peer_msg_handler.go:560: [0;37m[info] 1 propose ChangePeer: rengion.ConfVer:1 [0m
+2022/03/16 09:45:09.185721 rawnode.go:125: [0;37m[info] 1 rawnode:ProposeConfChange[0m
+2022/03/16 09:45:09.185731 rawnode.go:126: [0;37m[info] leadtransferee:1[0m
+2022/03/16 09:45:09.235688 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:09.238415 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:09.238439 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:09.238482 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:09.238542 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:09.285720 peer_msg_handler.go:560: [0;37m[info] 1 propose ChangePeer: rengion.ConfVer:1 [0m
+2022/03/16 09:45:09.285737 rawnode.go:125: [0;37m[info] 1 rawnode:ProposeConfChange[0m
+2022/03/16 09:45:09.285744 rawnode.go:126: [0;37m[info] leadtransferee:1[0m
+2022/03/16 09:45:09.335676 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:09.339028 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:09.339042 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:09.339042 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:09.339079 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:09.385693 peer_msg_handler.go:560: [0;37m[info] 1 propose ChangePeer: rengion.ConfVer:1 [0m
+2022/03/16 09:45:09.385726 rawnode.go:125: [0;37m[info] 1 rawnode:ProposeConfChange[0m
+2022/03/16 09:45:09.385737 rawnode.go:126: [0;37m[info] leadtransferee:1[0m
+2022/03/16 09:45:09.435694 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:09.439871 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:09.439900 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:09.439876 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:09.439880 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:09.485675 peer_msg_handler.go:560: [0;37m[info] 1 propose ChangePeer: rengion.ConfVer:1 [0m
+2022/03/16 09:45:09.485706 rawnode.go:125: [0;37m[info] 1 rawnode:ProposeConfChange[0m
+2022/03/16 09:45:09.485716 rawnode.go:126: [0;37m[info] leadtransferee:1[0m
+2022/03/16 09:45:09.535646 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:09.540085 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:09.540119 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:09.540085 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:09.540103 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:09.585682 peer_msg_handler.go:560: [0;37m[info] 1 propose ChangePeer: rengion.ConfVer:1 [0m
+2022/03/16 09:45:09.585720 rawnode.go:125: [0;37m[info] 1 rawnode:ProposeConfChange[0m
+2022/03/16 09:45:09.585748 rawnode.go:126: [0;37m[info] leadtransferee:1[0m
+2022/03/16 09:45:09.635664 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:09.640914 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:09.640940 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:09.640991 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:09.640923 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:09.685693 peer_msg_handler.go:560: [0;37m[info] 1 propose ChangePeer: rengion.ConfVer:1 [0m
+2022/03/16 09:45:09.685733 rawnode.go:125: [0;37m[info] 1 rawnode:ProposeConfChange[0m
+2022/03/16 09:45:09.685754 rawnode.go:126: [0;37m[info] leadtransferee:1[0m
+2022/03/16 09:45:09.735678 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:09.740692 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:09.740737 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:09.740692 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:09.740708 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:09.785700 peer_msg_handler.go:560: [0;37m[info] 1 propose ChangePeer: rengion.ConfVer:1 [0m
+2022/03/16 09:45:09.785740 rawnode.go:125: [0;37m[info] 1 rawnode:ProposeConfChange[0m
+2022/03/16 09:45:09.785762 rawnode.go:126: [0;37m[info] leadtransferee:1[0m
+2022/03/16 09:45:09.835644 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:09.840033 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:09.840051 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:09.840079 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:09.840041 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:09.885720 peer_msg_handler.go:560: [0;37m[info] 1 propose ChangePeer: rengion.ConfVer:1 [0m
+2022/03/16 09:45:09.885772 rawnode.go:125: [0;37m[info] 1 rawnode:ProposeConfChange[0m
+2022/03/16 09:45:09.885783 rawnode.go:126: [0;37m[info] leadtransferee:1[0m
+2022/03/16 09:45:09.935703 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:09.940136 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:09.940193 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:09.940225 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:09.940214 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:09.985721 peer_msg_handler.go:560: [0;37m[info] 1 propose ChangePeer: rengion.ConfVer:1 [0m
+2022/03/16 09:45:09.985752 rawnode.go:125: [0;37m[info] 1 rawnode:ProposeConfChange[0m
+2022/03/16 09:45:09.985771 rawnode.go:126: [0;37m[info] leadtransferee:1[0m
+2022/03/16 09:45:10.035681 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:10.038367 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:10.038394 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:10.038374 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:10.038389 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:10.085689 peer_msg_handler.go:560: [0;37m[info] 1 propose ChangePeer: rengion.ConfVer:1 [0m
+2022/03/16 09:45:10.085710 rawnode.go:125: [0;37m[info] 1 rawnode:ProposeConfChange[0m
+2022/03/16 09:45:10.085717 rawnode.go:126: [0;37m[info] leadtransferee:1[0m
+2022/03/16 09:45:10.135679 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:10.142470 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:10.142491 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:10.142477 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:10.142479 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:10.185756 peer_msg_handler.go:560: [0;37m[info] 1 propose ChangePeer: rengion.ConfVer:1 [0m
+2022/03/16 09:45:10.185787 rawnode.go:125: [0;37m[info] 1 rawnode:ProposeConfChange[0m
+2022/03/16 09:45:10.185798 rawnode.go:126: [0;37m[info] leadtransferee:1[0m
+2022/03/16 09:45:10.235710 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:10.240522 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:10.240544 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:10.240526 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:10.240526 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:10.285710 peer_msg_handler.go:560: [0;37m[info] 1 propose ChangePeer: rengion.ConfVer:1 [0m
+2022/03/16 09:45:10.285739 rawnode.go:125: [0;37m[info] 1 rawnode:ProposeConfChange[0m
+2022/03/16 09:45:10.285750 rawnode.go:126: [0;37m[info] leadtransferee:1[0m
+2022/03/16 09:45:10.335675 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:10.338261 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:10.338266 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:10.338277 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:10.338278 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:10.385690 peer_msg_handler.go:560: [0;37m[info] 1 propose ChangePeer: rengion.ConfVer:1 [0m
+2022/03/16 09:45:10.385723 rawnode.go:125: [0;37m[info] 1 rawnode:ProposeConfChange[0m
+2022/03/16 09:45:10.385739 rawnode.go:126: [0;37m[info] leadtransferee:1[0m
+2022/03/16 09:45:10.435671 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:10.438193 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:10.438226 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:10.438192 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:10.438215 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:10.485685 peer_msg_handler.go:560: [0;37m[info] 1 propose ChangePeer: rengion.ConfVer:1 [0m
+2022/03/16 09:45:10.485719 rawnode.go:125: [0;37m[info] 1 rawnode:ProposeConfChange[0m
+2022/03/16 09:45:10.485729 rawnode.go:126: [0;37m[info] leadtransferee:1[0m
+2022/03/16 09:45:10.535681 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 1 [0m
+2022/03/16 09:45:10.538221 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 3 [0m
+2022/03/16 09:45:10.538256 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 5 [0m
+2022/03/16 09:45:10.538221 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 4 [0m
+2022/03/16 09:45:10.538238 peer_msg_handler.go:402: [0;37m[info] --- handleRaftReady 2 [0m
+2022/03/16 09:45:10.567523 node.go:198: [0;37m[info] stop raft store thread, storeID: 4[0m
+2022/03/16 09:45:10.567592 node.go:198: [0;37m[info] stop raft store thread, storeID: 5[0m
+2022/03/16 09:45:10.567630 node.go:198: [0;37m[info] stop raft store thread, storeID: 1[0m
+2022/03/16 09:45:10.567658 node.go:198: [0;37m[info] stop raft store thread, storeID: 2[0m
+2022/03/16 09:45:10.567702 node.go:198: [0;37m[info] stop raft store thread, storeID: 3[0m
+--- FAIL: TestBasicConfChange3B (6.64s)
+panic: have peer: id:2 store_id:2  [recovered]
+	panic: have peer: id:2 store_id:2 
+
+goroutine 26 [running]:
+testing.tRunner.func1(0xc0001fa600)
+	/usr/lib/go-1.13/src/testing/testing.go:874 +0x3a3
+panic(0xc18ea0, 0xc17c8c97a0)
+	/usr/lib/go-1.13/src/runtime/panic.go:679 +0x1b2
+github.com/pingcap-incubator/tinykv/kv/test_raftstore.(*Cluster).MustNonePeer(0xc000174ae0, 0x1, 0xc17c8070b0)
+	/files/tinykv/kv/test_raftstore/cluster.go:472 +0x18a
+github.com/pingcap-incubator/tinykv/kv/test_raftstore.(*Cluster).MustRemovePeer(0xc000174ae0, 0x1, 0xc17c8070b0)
+	/files/tinykv/kv/test_raftstore/cluster.go:434 +0xd5
+github.com/pingcap-incubator/tinykv/kv/test_raftstore.TestBasicConfChange3B(0xc0001fa600)
+	/files/tinykv/kv/test_raftstore/test_test.go:564 +0x169
+testing.tRunner(0xc0001fa600, 0xd83dd8)
+	/usr/lib/go-1.13/src/testing/testing.go:909 +0xc9
+created by testing.(*T).Run
+	/usr/lib/go-1.13/src/testing/testing.go:960 +0x350
+FAIL	github.com/pingcap-incubator/tinykv/kv/test_raftstore	6.673s
 FAIL

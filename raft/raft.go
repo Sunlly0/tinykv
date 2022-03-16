@@ -1037,12 +1037,26 @@ func (r *Raft) handleTransferLeader(m pb.Message) {
 	// if r.leadTransferee != None && r.leadTransferee != m.From {
 	// 	return
 	// }
-	//1.1 如果转移对象是自己，直接处理timeout
-	if r.leadTransferee == r.id {
+	//1.1 如果转移对象是自己，直接当选并return
+	if m.From==r.id{
 		log.Infof("%d handleTransferleader, transfer to self", r.id)
-		// r.Step(pb.Message{MsgType: pb.MessageType_MsgTimeoutNow})
+		r.becomeCandidate()
+		r.becomeLeader()
 		return
 	}
+	// if r.leadTransferee == r.id {
+	// 	log.Infof("%d handleTransferleader, transfer to self", r.id)
+	// 	r.becomeCandidate()
+	// 	r.becomeLeader()
+	// 	// r.becomeCandidate()
+	// 	// if len(r.Prs) == 1 {
+	// 	// 	r.becomeLeader()
+	// 	// } else {
+	// 	// 	r.bcastRequestVote()
+	// 	// }
+	// 	// r.Step(pb.Message{MsgType: pb.MessageType_MsgTimeoutNow})
+	// 	return
+	// }
 
 	if _, ok := r.Prs[m.From]; ok {
 		r.leadTransferee = m.From

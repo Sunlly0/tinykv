@@ -123,6 +123,7 @@ func (rn *RawNode) ProposeConfChange(cc pb.ConfChange) error {
 		return err
 	}
 	log.Infof("%d rawnode:ProposeConfChange", rn.Raft.id)
+	log.Infof("leadtransferee:%d",rn.Raft.id)
 	ent := pb.Entry{EntryType: pb.EntryType_EntryConfChange, Data: data}
 	return rn.Raft.Step(pb.Message{
 		MsgType: pb.MessageType_MsgPropose,
