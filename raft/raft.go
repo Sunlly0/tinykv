@@ -202,7 +202,7 @@ func newRaft(c *Config) *Raft {
 	}
 
 	lastLogIndex := r.RaftLog.LastIndex()
-	log.Infof("++----newRaftLog: %d, len:%d, lastLogIndex:%d, committed:%d, applied:%d", r.id, len(r.RaftLog.entries), lastLogIndex, r.RaftLog.committed, r.RaftLog.applied)
+	// log.Infof("++----newRaftLog: %d, len:%d, lastLogIndex:%d, committed:%d, applied:%d", r.id, len(r.RaftLog.entries), lastLogIndex, r.RaftLog.committed, r.RaftLog.applied)
 	//Q:如何存储peer
 	//A：刚开始想的是在Raft中增加一个数据结构，后来参考网上，可以直接使用Prs存储
 	for _, peer := range c.peers {
@@ -271,9 +271,6 @@ func (r *Raft) sendAppend(to uint64) bool {
 
 	//如果不对next==0做判断，此处的prevLogIndex将为负数
 	prevLogIndex := nextIndex - 1
-	log.Infof("****+++ %d &&&6 sendAppend: to %d", r.id, to)
-	log.Infof("prevLogIndex:%d, r.RaftLog.firstIndex:%d", prevLogIndex, r.RaftLog.FirstIndex)
-	log.Infof("r.Prs.Match: %d, r.Prs.Next: %d", r.Prs[to].Match, r.Prs[to].Next)
 	prevLogTerm, err := r.RaftLog.Term(prevLogIndex)
 	if err != nil {
 		if err == ErrCompacted {
@@ -413,7 +410,7 @@ func (r *Raft) tick() {
 		//利用随机选举时间进行判断
 		if r.electionElapsed >= r.randomElectionTimeout {
 			r.resetTimeout()
-			log.Infof("---+ tick: %d Timeout ", r.id)
+			// log.Infof("---+ tick: %d Timeout ", r.id)
 			r.Step(pb.Message{MsgType: pb.MessageType_MsgHup})
 		}
 		//2.2 Leader心跳超时，处理：更新心跳并bcast心跳给所有追随者
@@ -451,11 +448,14 @@ func (r *Raft) becomeCandidate() {
 	r.VotedReject = 0
 	r.VotedFor = 0
 	r.votes = make(map[uint64]bool, 0)
+	r.Vote = None
 	//自己给自己投票
-	r.Vote = r.id
-	r.votes[r.id] = true
-	r.VotedFor++
-
+	//3b confchange 如果是还未经过快照同步的新加入节点，不给自己投票，避免与其他节点的候选竞争
+	if len(r.Prs) > 0 {
+		r.Vote = r.id
+		r.votes[r.id] = true
+		r.VotedFor++
+	}
 	log.Infof("++ %d becomeCadidate", r.id)
 	//根据测试逻辑，becomeCandidate中只做状态修改，不发送选举消息
 }
@@ -503,11 +503,7 @@ func (r *Raft) becomeLeader() {
 	//下面做append操作后，lastLogIndex++
 	//后续发送时：nextIndex==lastLogIndex，故为空
 	r.RaftLog.entries = append(r.RaftLog.entries, pb.Entry{Term: r.Term, Index: lastLogIndex + 1})
-	for _, entry := range r.RaftLog.entries {
-		if entry.Index == 0 {
-			panic("3.leadersend: entry'idex==0")
-		}
-	}
+
 	//如果有其他节点，sendAppend
 	for peer := range r.Prs {
 		if peer != r.id {
@@ -672,7 +668,7 @@ func (r *Raft) handleAppendEntries(m pb.Message) {
 	if m.Term == r.Term && r.Lead == None {
 		r.becomeFollower(m.Term, m.From)
 	}
-	log.Infof("--+ %d handleAppend, Lead: %d", r.id, r.Lead)
+	// log.Infof("--+ %d handleAppend, Lead: %d", r.id, r.Lead)
 
 	//3.如果接收者没有能匹配上的leader的日志条目,即prevLogIndex和prevLogTerm的索引任期一样的条目
 	//m.Index即prevLogIndex,m.LogTerm即prevLogTerm
@@ -682,7 +678,7 @@ func (r *Raft) handleAppendEntries(m pb.Message) {
 	//3.1 如果leader认为的follow的Next大于实际的lastLogIndex, return false
 	if lastLogIndex < m.Index {
 		log.Infof("&&&2: %d sendAppenResponse:", r.id)
-		log.Infof("++---- %d handleAppend: first:%d last:%d, len:%d, m.Index:%d, lenAppend:%d, r.Term:%d, m.Term:%d", r.id, r.RaftLog.FirstIndex, r.RaftLog.LastIndex(), len(r.RaftLog.entries), m.Index, len(m.Entries), r.Term, m.Term)
+		// log.Infof("++---- %d handleAppend: first:%d last:%d, len:%d, m.Index:%d, lenAppend:%d, r.Term:%d, m.Term:%d", r.id, r.RaftLog.FirstIndex, r.RaftLog.LastIndex(), len(r.RaftLog.entries), m.Index, len(m.Entries), r.Term, m.Term)
 		r.sendAppendResponse(m.From, false, None, lastLogIndex+1)
 		return
 	}
@@ -691,12 +687,12 @@ func (r *Raft) handleAppendEntries(m pb.Message) {
 	// 	return
 	// }
 	if r.RaftLog.FirstIndex <= m.Index {
-		log.Infof("++---- %d handleAppend: first:%d last:%d, len:%d, m.Index:%d, lenAppend:%d", r.id, r.RaftLog.FirstIndex, r.RaftLog.LastIndex(), len(r.RaftLog.entries), m.Index, len(m.Entries))
+		// log.Infof("++---- %d handleAppend: first:%d last:%d, len:%d, m.Index:%d, lenAppend:%d", r.id, r.RaftLog.FirstIndex, r.RaftLog.LastIndex(), len(r.RaftLog.entries), m.Index, len(m.Entries))
 		//3.2 取接收者的log[prevLogIndex]看能否和prevLogTerm能匹配上
 		logTerm, err := r.RaftLog.Term(m.Index)
-		log.Infof("++---- %d handleAppend: logTerm:%d, m.LogTerm:%d", r.id, logTerm, m.LogTerm)
+		// log.Infof("++---- %d handleAppend: logTerm:%d, m.LogTerm:%d", r.id, logTerm, m.LogTerm)
 		if err != nil {
-			log.Infof("***panic: Term:%d", m.Index)
+			// log.Infof("***panic: Term:%d", m.Index)
 			panic(err)
 		}
 		//不能匹配：return false
@@ -770,8 +766,8 @@ func (r *Raft) handleAppendEntriesResponse(m pb.Message) {
 	if m.Reject {
 		//Next-1,重试
 		// index := m.Index
-		log.Infof("&&&0: %d handleAppenResponse: Reject, Form:%d", r.id, m.From)
-		log.Infof("+++---- %d handleAR: from: %d ,", r.id, m.From)
+		// log.Infof("&&&0: %d handleAppenResponse: Reject, Form:%d", r.id, m.From)
+		// log.Infof("+++---- %d handleAR: from: %d ,", r.id, m.From)
 		if r.Prs[m.From].Next > 0 {
 			r.Prs[m.From].Next--
 		}
@@ -785,7 +781,7 @@ func (r *Raft) handleAppendEntriesResponse(m pb.Message) {
 		if m.Index > r.Prs[m.From].Match {
 			r.Prs[m.From].Match = m.Index
 			r.Prs[m.From].Next = m.Index + 1
-			log.Infof("%d handleAP %d Response:match:%d, next:%d", r.id, m.From, m.Index, m.Index+1)
+			// log.Infof("%d handleAP %d Response:match:%d, next:%d", r.id, m.From, m.Index, m.Index+1)
 			//Q:updateCommit的作用是啥？
 			//A:更新leader的committed，并通知跟随者更新
 			r.updateCommit()
@@ -867,12 +863,16 @@ func (r *Raft) handleHeartbeatResponse(m pb.Message) {
 // handleRequestVote by follower
 func (r *Raft) handleRequestVote(m pb.Message) {
 	// 按Raft论文的算法描述来
-	log.Infof("--+ %d handleRequestVote: state: %d, Term: %d", r.id, r.State, r.Term)
+	log.Infof("--+ %d handleRequestVote: state: %d, Term: %d, From: %d", r.id, r.State, r.Term, m.From)
 	//1.任期是否过期，return false
 	if m.Term < r.Term {
 		r.sendRequestVoteResponse(m.From, false)
 		return
 	}
+	if r.Term == 0 {
+		log.Infof("term 0")
+	}
+	log.Infof("*** %d term: %d, msg.term: %d", r.id, r.Term, m.Term)
 	//2 如果消息中的任期更大，成为追随者。但不一定投票（还要看Term和Index)
 	if m.Term > r.Term {
 		//3.如果候选者日志没有自己新，(先判断Term再判断Index)，return false
@@ -880,6 +880,7 @@ func (r *Raft) handleRequestVote(m pb.Message) {
 		lastLogTerm, _ := r.RaftLog.Term(lastLogIndex)
 		if lastLogTerm > m.LogTerm || lastLogTerm == m.LogTerm && lastLogIndex > m.Index {
 			r.becomeFollower(m.Term, None)
+			log.Infof("vote resp: false")
 			r.sendRequestVoteResponse(m.From, false)
 			return
 		}
@@ -888,6 +889,7 @@ func (r *Raft) handleRequestVote(m pb.Message) {
 		// r.becomeFollower(m.Term, m.From)
 		r.becomeFollower(m.Term, None)
 		r.Vote = m.From
+		log.Infof("vote resp: true")
 		r.sendRequestVoteResponse(m.From, true)
 		return
 	}
@@ -924,7 +926,7 @@ func (r *Raft) handleRequestVoteResponse(m pb.Message) {
 		r.VotedFor++
 		r.votes[m.From] = true
 	}
-	// log.Infof("--++ %d handleVoteResp: state: %d, Term: %d, VotedFor: %d", r.id, r.State, r.Term, r.VotedFor)
+	log.Infof("--++ %d handleVoteResp: state: %d, Term: %d, VotedFor: %d", r.id, r.State, r.Term, r.VotedFor)
 	//超过半数就可以决定是当选还是落选
 	//2. 过半同意，成为领导者
 	if r.VotedFor > uint64(len(r.Prs)/2) {
@@ -947,7 +949,7 @@ func (r *Raft) appendEntries(entries []*pb.Entry) {
 		entry.Term = r.Term
 		entry.Index = lastIndex + uint64(i) + 1
 
-		log.Infof("*-- %d Propose appendEntries: , index: %d ,State:%s", r.id, entry.Index, r.State)
+		log.Infof("*-- %d Propose appendEntries: index: %d ,State:%s", r.id, entry.Index, r.State)
 		//3b Confchange 对于ConfChange命令，设置pendingConfIndex，确保当还有ConfChange命令
 		//没有被应用的时候，不能propose新的ChangePeer。
 		if entry.EntryType == pb.EntryType_EntryConfChange {
@@ -956,6 +958,7 @@ func (r *Raft) appendEntries(entries []*pb.Entry) {
 			}
 			r.PendingConfIndex = entry.Index
 		}
+		log.Infof("&&& %d pendingConfIndex:%d", r.id, r.PendingConfIndex)
 		ent = append(ent, entry)
 	}
 	//2.添加entry到日志条目
@@ -1005,7 +1008,7 @@ func (r *Raft) handleSnapshot(m pb.Message) {
 	meta := m.Snapshot.Metadata
 	//1.判断快照是否过期
 	if meta.Index <= r.RaftLog.committed {
-		log.Infof(" %d handleSnapshot:out of date", r.id)
+		// log.Infof(" %d handleSnapshot:out of date", r.id)
 		r.sendAppendResponse(m.From, true, None, r.RaftLog.committed)
 		return
 	}
@@ -1038,7 +1041,7 @@ func (r *Raft) handleTransferLeader(m pb.Message) {
 	// 	return
 	// }
 	//1.1 如果转移对象是自己，直接当选并return
-	if m.From==r.id{
+	if m.From == r.id {
 		log.Infof("%d handleTransferleader, transfer to self", r.id)
 		r.becomeCandidate()
 		r.becomeLeader()
@@ -1081,6 +1084,7 @@ func (r *Raft) addNode(id uint64) {
 		r.Prs[id] = &Progress{Next: 0}
 	}
 	r.PendingConfIndex = None
+	log.Infof("%d add node : PendingConfIndex=None", r.id)
 }
 
 // removeNode remove a node from raft group
@@ -1097,4 +1101,5 @@ func (r *Raft) removeNode(id uint64) {
 		}
 	}
 	r.PendingConfIndex = None
+	log.Infof("%d remove node : PendingConfIndex=None", r.id)
 }

@@ -150,14 +150,24 @@ func (d *peerMsgHandler) processConfChange(entry *eraftpb.Entry, cc *eraftpb.Con
 		panic(err)
 	}
 	log.Infof("%d processConfChange", d.PeerId())
+	if cc.ChangeType == eraftpb.ConfChangeType_AddNode {
+		log.Infof("&&& %d processConfChange: AddNode:%d", d.PeerId(), msg.AdminRequest.ChangePeer.Peer.Id)
+	}
+	if cc.ChangeType == eraftpb.ConfChangeType_RemoveNode {
+		log.Infof("&&& %d processConfChange: RemoveNode: %d", d.PeerId(), msg.AdminRequest.ChangePeer.Peer.Id)
+	}
+	log.Infof("&&& %d pendingConfIndex: %d", d.PeerId(), d.RaftGroup.Raft.PendingConfIndex)
 	//1.使用util.CheckRegionEpoch判断配置是否落后，否则继续
+	log.Infof("%d processConfchange: regionconfVer:%d, msgconfVer:%d", d.PeerId(), d.Region().RegionEpoch.GetConfVer(), msg.Header.RegionEpoch.ConfVer)
 	region := d.Region()
 	err = util.CheckRegionEpoch(msg, region, true)
 	if err != nil {
+		log.Infof("%d process confchange: errEpochNotMatching", d.PeerId())
 		d.handleProposal(entry, func(p *proposal) {
 			p.cb.Done(ErrResp(err))
 		})
-		panic(err)
+		// panic(err)
+		return
 	}
 	// log.Infof("%d processConfChange", d.PeerId())
 	// PrevRegion := region
@@ -168,6 +178,7 @@ func (d *peerMsgHandler) processConfChange(entry *eraftpb.Entry, cc *eraftpb.Con
 		//Q:为啥要做这些操作？
 		//为避免重复添加，应该在添加前判断该peer是否已经在region中
 		if !isPeerExist(region, cc.NodeId) {
+			log.Infof("processConfChange:add")
 			//将peer添加到region
 			peer := msg.AdminRequest.ChangePeer.Peer
 			region.Peers = append(region.Peers, peer)
@@ -188,6 +199,7 @@ func (d *peerMsgHandler) processConfChange(entry *eraftpb.Entry, cc *eraftpb.Con
 		}
 
 	case eraftpb.ConfChangeType_RemoveNode:
+		log.Infof("processConfChange:remove")
 		//4.对于removenode
 		//4.1 如果待删除的节点是自己，则调用destroyPeer，其他不用管
 		if cc.NodeId == d.Meta.Id {
@@ -255,11 +267,12 @@ func (d *peerMsgHandler) processAdminRequest(entry *eraftpb.Entry, msg *raft_cmd
 		}
 	case raft_cmdpb.AdminCmdType_Split:
 		//0.检查region
-		log.Infof("%d process Split:", d.PeerId())
+		log.Infof("%d process Split: regionconfVer:%d, msgconfVer:%d", d.PeerId(), d.Region().RegionEpoch.GetConfVer(), msg.Header.RegionEpoch.ConfVer)
 		region := d.Region()
 		err := util.CheckRegionEpoch(msg, region, true)
 		if err != nil {
 			if errEpochNotMatching, ok := err.(*util.ErrEpochNotMatch); ok {
+				log.Infof("%d Sprocess plit: errEpochNotMatching", d.PeerId())
 				d.handleProposal(entry, func(p *proposal) {
 					p.cb.Done(ErrResp(errEpochNotMatching))
 				})
@@ -269,8 +282,8 @@ func (d *peerMsgHandler) processAdminRequest(entry *eraftpb.Entry, msg *raft_cmd
 		split := req.GetSplit()
 		err2 := util.CheckKeyInRegion(split.SplitKey, region)
 		if err2 != nil {
-			log.Infof("Split err: checkkeyInRegion, regionId: %d, startKey: %v, endKey: %v ", region.Id, region.GetStartKey(), region.GetEndKey())
-			log.Infof("--- %s on split with %v", d.Tag, split.SplitKey)
+			// log.Infof("Split err: checkkeyInRegion, regionId: %d, startKey: %v, endKey: %v ", region.Id, region.GetStartKey(), region.GetEndKey())
+			// log.Infof("--- %s on split with %v", d.Tag, split.SplitKey)
 			d.handleProposal(entry, func(p *proposal) {
 				p.cb.Done(ErrResp(err2))
 			})
@@ -399,14 +412,14 @@ func (d *peerMsgHandler) HandleRaftReady() {
 	if !d.RaftGroup.HasReady() {
 		return
 	}
-	log.Infof("--- handleRaftReady %d ", d.RaftGroup.GetRaftId())
+	// log.Infof("--- handleRaftReady %d ", d.RaftGroup.GetRaftId())
 	rd := d.RaftGroup.Ready()
 	//2.将Ready持久化到badger.(保存Raftdb的信息)，必须持久化之后才处理Ready
 	result, err := d.peerStorage.SaveReadyState(&rd)
 	if err != nil {
 		panic(err)
 	}
-	//3b ConfChange 将自己的region信息和快照中的region同步
+	//3b ConfChange 新加入的节点将自己的region信息和快照中的region同步
 	if result != nil {
 		d.peerStorage.SetRegion(result.Region)
 		d.ctx.storeMeta.Lock()
@@ -418,11 +431,11 @@ func (d *peerMsgHandler) HandleRaftReady() {
 
 	//3.调用d.send方法将Ready中的Messagge发送出去
 	if len(rd.Messages) != 0 {
-		for _, msg := range rd.Messages {
-			if msg.Snapshot != nil {
-				log.Infof("%d handleRaftReady:msg with snapshot", d.RaftGroup.GetRaftId())
-			}
-		}
+		// for _, msg := range rd.Messages {
+		// 	if msg.Snapshot != nil {
+		// 		log.Infof("%d handleRaftReady:msg with snapshot", d.RaftGroup.GetRaftId())
+		// 	}
+		// }
 		d.Send(d.ctx.trans, rd.Messages)
 	}
 	//4.应用ready.CommittedEntries中的entry（kvdb）
@@ -557,10 +570,11 @@ func (d *peerMsgHandler) proposeAdminRequest(msg *raft_cmdpb.RaftCmdRequest, cb 
 		cb.Done(resp)
 	case raft_cmdpb.AdminCmdType_ChangePeer:
 		//每个节点都执行，用confchange消息的方式提议
-		log.Infof("%d propose ChangePeer: rengion.ConfVer:%d ", d.PeerId(), d.Region().GetRegionEpoch().ConfVer)
+		log.Infof("%d propose ChangePeer: region.ConfVer:%d ", d.PeerId(), d.Region().GetRegionEpoch().ConfVer)
 		if d.RaftGroup.Raft.PendingConfIndex > d.peerStorage.AppliedIndex() {
 			return
 		}
+		log.Infof("pendingConfindex:%d", d.RaftGroup.Raft.PendingConfIndex)
 		context, err := msg.Marshal()
 		if err != nil {
 			panic(err)
@@ -570,6 +584,22 @@ func (d *peerMsgHandler) proposeAdminRequest(msg *raft_cmdpb.RaftCmdRequest, cb 
 			ChangeType: msg.AdminRequest.ChangePeer.ChangeType,
 			NodeId:     msg.AdminRequest.ChangePeer.Peer.Id,
 			Context:    context,
+		}
+		//3b: 解决只剩两个节点并删除leader的问题：忽略该消息且转移lead权
+		if (cc.ChangeType == eraftpb.ConfChangeType_RemoveNode) && (cc.NodeId == d.PeerId()) && len(d.Region().GetPeers()) == 2 {
+			for _, peer := range d.Region().Peers {
+				if peer.Id != d.PeerId() {
+					d.RaftGroup.TransferLeader(peer.Id)
+					cb.Done(&raft_cmdpb.RaftCmdResponse{
+						Header: &raft_cmdpb.RaftResponseHeader{},
+						AdminResponse: &raft_cmdpb.AdminResponse{
+							CmdType:    raft_cmdpb.AdminCmdType_ChangePeer,
+							ChangePeer: &raft_cmdpb.ChangePeerResponse{},
+						},
+					})
+					return
+				}
+			}
 		}
 		proposal := &proposal{index: d.nextProposalIndex(), term: d.Term(), cb: cb}
 		d.proposals = append(d.proposals, proposal)
