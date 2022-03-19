@@ -118,7 +118,7 @@ func (d *peerMsgHandler) process(entry *eraftpb.Entry, wb *engine_util.WriteBatc
 		if err != nil {
 			panic(err)
 		}
-		d.processConfRequest(entry, cc, wb)
+		//d.processConfRequest(entry, cc, wb)
 
 		return
 	}
