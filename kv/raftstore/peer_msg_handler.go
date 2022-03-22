@@ -267,12 +267,12 @@ func (d *peerMsgHandler) processAdminRequest(entry *eraftpb.Entry, msg *raft_cmd
 		}
 	case raft_cmdpb.AdminCmdType_Split:
 		//0.检查region
-		log.Infof("%d process Split: regionconfVer:%d, msgconfVer:%d", d.PeerId(), d.Region().RegionEpoch.GetConfVer(), msg.Header.RegionEpoch.ConfVer)
+		log.Infof("%d process Split: regionVer:%d, msgVer:%d", d.PeerId(), d.Region().RegionEpoch.GetVersion(), msg.Header.RegionEpoch.Version)
 		region := d.Region()
 		err := util.CheckRegionEpoch(msg, region, true)
 		if err != nil {
 			if errEpochNotMatching, ok := err.(*util.ErrEpochNotMatch); ok {
-				log.Infof("%d Sprocess plit: errEpochNotMatching", d.PeerId())
+				log.Infof("%d Split: errEpochNotMatching", d.PeerId())
 				d.handleProposal(entry, func(p *proposal) {
 					p.cb.Done(ErrResp(errEpochNotMatching))
 				})
@@ -337,8 +337,24 @@ func (d *peerMsgHandler) processAdminRequest(entry *eraftpb.Entry, msg *raft_cmd
 		d.handleProposal(entry, func(p *proposal) {
 			p.cb.Done(resp)
 		})
+		// notify new region created
+		d.notifyHeartbeatScheduler(region, d.peer)
+		d.notifyHeartbeatScheduler(newregion, newpeer)
 	}
 
+}
+func (d *peerMsgHandler) notifyHeartbeatScheduler(region *metapb.Region, peer *peer) {
+	clonedRegion := new(metapb.Region)
+	err := util.CloneMsg(region, clonedRegion)
+	if err != nil {
+		return
+	}
+	d.ctx.schedulerTaskSender <- &runner.SchedulerRegionHeartbeatTask{
+		Region:          clonedRegion,
+		Peer:            peer.Meta,
+		PendingPeers:    peer.CollectPendingPeers(),
+		ApproximateSize: peer.ApproximateSize,
+	}
 }
 
 //by Sunlly
@@ -424,7 +440,8 @@ func (d *peerMsgHandler) HandleRaftReady() {
 		d.peerStorage.SetRegion(result.Region)
 		d.ctx.storeMeta.Lock()
 		d.ctx.storeMeta.regions[result.Region.Id] = result.Region
-		d.ctx.storeMeta.regionRanges.Delete(&regionItem{region: result.PrevRegion})
+		//3b split 不能用delete，因为可能region已经分裂，删除到了分裂后小的region
+		// d.ctx.storeMeta.regionRanges.Delete(&regionItem{region: result.PrevRegion})
 		d.ctx.storeMeta.regionRanges.ReplaceOrInsert(&regionItem{region: result.Region})
 		d.ctx.storeMeta.Unlock()
 	}
@@ -610,6 +627,7 @@ func (d *peerMsgHandler) proposeAdminRequest(msg *raft_cmdpb.RaftCmdRequest, cb 
 		err := util.CheckKeyInRegion(req.Split.SplitKey, d.Region())
 		if err != nil {
 			cb.Done(ErrResp(err))
+			return
 		}
 		//2.转换cmd消息为日志数据，无误则继续
 		data, err := msg.Marshal()

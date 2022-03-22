@@ -880,7 +880,7 @@ func (r *Raft) handleRequestVote(m pb.Message) {
 		lastLogTerm, _ := r.RaftLog.Term(lastLogIndex)
 		if lastLogTerm > m.LogTerm || lastLogTerm == m.LogTerm && lastLogIndex > m.Index {
 			r.becomeFollower(m.Term, None)
-			log.Infof("vote resp: false")
+			log.Infof("%d vote resp: false", r.id)
 			r.sendRequestVoteResponse(m.From, false)
 			return
 		}
@@ -889,7 +889,7 @@ func (r *Raft) handleRequestVote(m pb.Message) {
 		// r.becomeFollower(m.Term, m.From)
 		r.becomeFollower(m.Term, None)
 		r.Vote = m.From
-		log.Infof("vote resp: true")
+		log.Infof("%d vote resp: true", r.id)
 		r.sendRequestVoteResponse(m.From, true)
 		return
 	}
