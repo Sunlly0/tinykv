@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/gogo/protobuf/proto"
+	"github.com/pingcap-incubator/tinykv/kv/raftstore/util"
 	"github.com/pingcap-incubator/tinykv/proto/pkg/metapb"
 	"github.com/pingcap-incubator/tinykv/proto/pkg/schedulerpb"
 	"github.com/pingcap-incubator/tinykv/scheduler/pkg/logutil"
@@ -279,6 +280,33 @@ func (c *RaftCluster) handleStoreHeartbeat(stats *schedulerpb.StoreStats) error 
 // processRegionHeartbeat updates the region information.
 func (c *RaftCluster) processRegionHeartbeat(region *core.RegionInfo) error {
 	// Your Code Here (3C).
+	//1.如果region没有Epoch信息，返回nil
+	if region.GetRegionEpoch() == nil {
+		return nil
+	}
+	//2.检查scheduler中是否有和heartbeat的Id相同的region
+	localregion := c.GetRegion(region.GetID())
+	//2.1 如果有，检查该region的Epoch，如果消息中的Epoch更旧则heartbeat消息过期
+	if localregion != nil {
+		if util.IsEpochStale(region.GetRegionEpoch(), localregion.GetRegionEpoch()) {
+			return ErrRegionIsStale(region.GetMeta(), localregion.GetMeta())
+		}
+	} else {
+		//2.2 如果没有，检查所有重合的region的Epoch，如果有消息的Epoch没有大于所有重合region的epoch,则消息过期
+		overlapRegions := c.core.GetOverlaps(region)
+		for _, overlapRegion := range overlapRegions {
+			if util.IsEpochStale(region.GetRegionEpoch(), overlapRegion.GetRegionEpoch()) {
+				return ErrRegionIsStale(region.GetMeta(), overlapRegion.GetMeta())
+			}
+		}
+	}
+	//3.检查Heartbeat是否有新信息，可以跳过更新？如版本增大，领导者改变,pendingPeer改变，近似大小改变
+	//不需要找到严格的充分和必要条件，冗余的更新不会影响正确性
+	//4.region-tree和存储状态的更新
+	c.core.PutRegion(region) //是一个tree，如果已有该Id的region，则删除后添加，如果没有则直接添加
+	for storeId := range region.GetStoreIds() {
+		c.updateStoreStatusLocked(storeId)
+	}
 
 	return nil
 }
