@@ -79,8 +79,7 @@ func (s *balanceRegionScheduler) IsScheduleAllowed(cluster opt.Cluster) bool {
 
 func (s *balanceRegionScheduler) Schedule(cluster opt.Cluster) *operator.Operator {
 	// Your Code Here (3C).
-
-	//1.挑选出所有适合的store
+	//1.挑选出所有region适合移动的store
 	//依据：是up的以及down的时间小于StoreDownTime
 	suitableStores := make([]*core.StoreInfo, 0)
 	for _, store := range cluster.GetStores() {
@@ -153,7 +152,14 @@ func (s *balanceRegionScheduler) Schedule(cluster opt.Cluster) *operator.Operato
 		return nil
 	}
 
-	//6.调用
-
-	return nil
+	//6.调用cluster.AllocPeer创建Peer，返回所需的操作
+	newPeer, err := cluster.AllocPeer(dstStore.GetID())
+	if err != nil {
+		return nil
+	}
+	option, err := operator.CreateMovePeerOperator("balance-region", cluster, regionInfo, operator.OpBalance, sourceStore.GetID(), dstStore.GetID(), newPeer.GetId())
+	if err != nil {
+		return nil
+	}
+	return option
 }
