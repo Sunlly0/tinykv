@@ -57,7 +57,7 @@ func (txn *MvccTxn) PutWrite(key []byte, ts uint64, write *Write) {
 // if an error occurs during lookup.
 func (txn *MvccTxn) GetLock(key []byte) (*Lock, error) {
 	// Your Code Here (4A).
-	//使用reader.GetCF，遍历获取cfLock列族中所有的lock
+	//使用reader.GetCF，获取key对应的lock
 	lock, err := txn.Reader.GetCF(engine_util.CfLock, key)
 	if err != nil {
 		return nil, err
@@ -101,7 +101,7 @@ func (txn *MvccTxn) DeleteLock(key []byte) {
 // I.e., the most recent value committed before the start of this transaction.
 func (txn *MvccTxn) GetValue(key []byte) ([]byte, error) {
 	// Your Code Here (4A).
-	//获取key对应的value。返回mvcc开始时戳startTs前commit的最新数据
+	//获取key对应的value。返回mvccTxn开始时戳startTs前commit的最新数据
 	iter := txn.Reader.IterCF(engine_util.CfWrite)
 	defer iter.Close()
 	iter.Seek(EncodeKey(key, txn.StartTS))
