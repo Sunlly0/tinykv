@@ -428,7 +428,7 @@ func (d *peerMsgHandler) HandleRaftReady() {
 	if !d.RaftGroup.HasReady() {
 		return
 	}
-	// log.Infof("--- handleRaftReady %d ", d.RaftGroup.GetRaftId())
+	log.Infof("--- handleRaftReady %d ", d.RaftGroup.GetRaftId())
 	rd := d.RaftGroup.Ready()
 	//2.将Ready持久化到badger.(保存Raftdb的信息)，必须持久化之后才处理Ready
 	result, err := d.peerStorage.SaveReadyState(&rd)

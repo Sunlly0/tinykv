@@ -84,7 +84,7 @@ func (s *balanceRegionScheduler) Schedule(cluster opt.Cluster) *operator.Operato
 	suitableStores := make([]*core.StoreInfo, 0)
 	for _, store := range cluster.GetStores() {
 		//Q:Up和Down的含义？
-		if store.IsUp() && store.DownTime() < cluster.GetMaxStoreDownTime() {
+		if store.IsUp() && store.DownTime() <= cluster.GetMaxStoreDownTime() {
 			suitableStores = append(suitableStores, store)
 		}
 	}
@@ -92,7 +92,7 @@ func (s *balanceRegionScheduler) Schedule(cluster opt.Cluster) *operator.Operato
 	if len(suitableStores) <= 1 {
 		return nil
 	}
-	//对suitavleStores按RegionSize进行排序
+	//对suitableStores按RegionSize进行排序
 	sort.Slice(suitableStores, func(i, j int) bool {
 		return suitableStores[i].GetRegionSize() > suitableStores[j].GetRegionSize()
 	})
@@ -135,20 +135,25 @@ func (s *balanceRegionScheduler) Schedule(cluster opt.Cluster) *operator.Operato
 	}
 	//4.找适合移动至的目标store
 	//依据：size最小，不能是原来的region所在store
+	//注意需要剔除已经有该region的store.
+	regionStores := regionInfo.GetStoreIds()
 	for i := range suitableStores {
 		store := suitableStores[len(suitableStores)-i-1]
 		if store.GetID() != sourceStore.GetID() {
-			dstStore = store
-			break
+			if _, ok := regionStores[store.GetID()]; !ok {
+				dstStore = store
+				break
+			}
 		}
 	}
+
 	if dstStore == nil {
 		return nil
 	}
 	//5.验证这次移动是否有价值
 	//依据：目标store和原store的size之差是否大于2倍region的approximateSize
 	//上个步骤中直接取size最小的store做验证就可以了，因为最小的若不能满足，次小的一定不能满足
-	if sourceStore.GetRegionSize()-dstStore.GetRegionSize() < 2*regionInfo.GetApproximateSize() {
+	if sourceStore.GetRegionSize()-dstStore.GetRegionSize() <= 2*regionInfo.GetApproximateSize() {
 		return nil
 	}
 
