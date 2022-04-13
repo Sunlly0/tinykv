@@ -199,6 +199,31 @@ func (txn *MvccTxn) MostRecentWrite(key []byte) (*Write, uint64, error) {
 	return prasewrite, decodeTimestamp(iter.Item().Key()), nil
 }
 
+//by Sunly
+//遍历LockCF,获取某StartTs事务锁定的所有key
+func (txn *MvccTxn) GetKeysInLock() ([][]byte, error) {
+	// Your Code Here (4A).
+	iter := txn.Reader.IterCF(engine_util.CfLock)
+	defer iter.Close()
+	var keys [][]byte
+	for ; iter.Valid(); iter.Next() {
+		lock, err := iter.Item().Value()
+		if err != nil {
+			return nil, err
+		}
+		praselock, err := ParseLock(lock)
+		if err != nil {
+			return nil, err
+		}
+		//如果Lock是本事务的lock，则保存Key
+		if praselock.Ts == txn.StartTS {
+			key := iter.Item().Key()
+			keys = append(keys, key)
+		}
+	}
+	return keys, nil
+}
+
 // EncodeKey encodes a user key and appends an encoded timestamp to a key. Keys and timestamps are encoded so that
 // timestamped keys are sorted first by key (ascending), then by timestamp (descending). The encoding is based on
 // https://github.com/facebook/mysql-5.6/wiki/MyRocks-record-format#memcomparable-format.

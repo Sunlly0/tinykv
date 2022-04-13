@@ -77,7 +77,7 @@ func (server *Server) KvGet(_ context.Context, req *kvrpcpb.GetRequest) (*kvrpcp
 			},
 		}, err
 	}
-	//2.2 获取对应版本的值，调用GetValue（比自己startTS小的最新Write记录对应startTS的Data值)
+	//2.2 获取对应版本的值，调用GetValue（比自己startTS小的最新Write记录对应的Data值)
 	value, err := txn.GetValue(req.Key)
 	if err != nil {
 		return &kvrpcpb.GetResponse{}, err
@@ -177,9 +177,9 @@ func (server *Server) KvCommit(_ context.Context, req *kvrpcpb.CommitRequest) (*
 	defer reader.Close()
 	txn := mvcc.NewMvccTxn(reader, req.GetStartVersion())
 
-	//2.上锁，避免客户端的Commit和abort冲突
-	server.Latches.WaitForLatches(req.Keys)
-	defer server.Latches.ReleaseLatches(req.Keys)
+	// //2.上锁，避免客户端的Commit和abort冲突
+	// server.Latches.WaitForLatches(req.Keys)
+	// defer server.Latches.ReleaseLatches(req.Keys)
 
 	//3.提交阶段，遍历Key
 	for _, key := range req.Keys {
@@ -218,22 +218,135 @@ func (server *Server) KvCommit(_ context.Context, req *kvrpcpb.CommitRequest) (*
 
 func (server *Server) KvScan(_ context.Context, req *kvrpcpb.ScanRequest) (*kvrpcpb.ScanResponse, error) {
 	// Your Code Here (4C).
+
 	return nil, nil
 }
 
+//检查事务的状态：锁未超时；锁超时；
 func (server *Server) KvCheckTxnStatus(_ context.Context, req *kvrpcpb.CheckTxnStatusRequest) (*kvrpcpb.CheckTxnStatusResponse, error) {
 	// Your Code Here (4C).
-	return nil, nil
+	//1.由req.Context创建reader，进而创建mvcctxn
+	reader, err := server.storage.Reader(req.GetContext())
+	if err != nil {
+		return &kvrpcpb.CheckTxnStatusResponse{}, err
+	}
+	defer reader.Close()
+	txn := mvcc.NewMvccTxn(reader, req.GetLockTs())
+
+	//2.按是否有锁分情况讨论
+	lock, err := txn.GetLock(req.PrimaryKey)
+	//2.1 如果还有锁
+	if lock != nil {
+		//检查锁是否超时
+
+	} else {
+
+	}
+
+	return &kvrpcpb.CheckTxnStatusResponse{}, err
 }
 
 func (server *Server) KvBatchRollback(_ context.Context, req *kvrpcpb.BatchRollbackRequest) (*kvrpcpb.BatchRollbackResponse, error) {
 	// Your Code Here (4C).
-	return nil, nil
+	//1.由req.Context创建reader，进而创建mvcctxn
+	reader, err := server.storage.Reader(req.GetContext())
+	if err != nil {
+		return &kvrpcpb.BatchRollbackResponse{}, err
+	}
+	defer reader.Close()
+	txn := mvcc.NewMvccTxn(reader, req.GetStartVersion())
+
+	//2.上锁，避免客户端的Commit和abort冲突
+	// server.Latches.WaitForLatches(req.Keys)
+	// defer server.Latches.ReleaseLatches(req.Keys)
+
+	//3.遍历key，并依次回滚
+	for _, key := range req.Keys {
+		//3.0 对当前事务对应的Write检查
+		write, _, err := txn.CurrentWrite(key)
+		if err != nil {
+			return &kvrpcpb.BatchRollbackResponse{}, err
+		}
+		if write != nil {
+			if write.Kind == mvcc.WriteKindRollback {
+				//已经回滚,跳过该key（可能是其他事务回滚的）
+				continue
+			}
+			return &kvrpcpb.BatchRollbackResponse{Error: &kvrpcpb.KeyError{Abort: "true"}}, nil
+		}
+
+		//3.1 检查Lock是否存在，以及是否还是本事务持有
+		lock, err := txn.GetLock(key)
+		if err != nil {
+			return &kvrpcpb.BatchRollbackResponse{}, err
+		}
+		//3.2 修改Write的kind为回滚(Write存在则修改Kind；Write不存在则添加记录)
+		txn.PutWrite(key, req.GetStartVersion(), &mvcc.Write{
+			StartTS: req.StartVersion,
+			Kind:    mvcc.WriteKindRollback,
+		})
+		//如果没有锁（已释放），或不是本事务持有了，则终止回滚
+		if lock == nil || lock.Ts != req.GetStartVersion() {
+			continue
+		}
+
+		//3.3 本事务存在锁的情况下，删除锁和数据
+		txn.DeleteLock(key)
+		txn.DeleteValue(key)
+	}
+
+	//4. 如果没有keyError，则将Write字段保存在数据库中
+	err = server.storage.Write(req.GetContext(), txn.Writes())
+
+	return &kvrpcpb.BatchRollbackResponse{}, err
 }
 
+//找属于这个事务的所有锁，同时回滚或提交
 func (server *Server) KvResolveLock(_ context.Context, req *kvrpcpb.ResolveLockRequest) (*kvrpcpb.ResolveLockResponse, error) {
 	// Your Code Here (4C).
-	return nil, nil
+	//1.由req.Context创建reader，进而创建mvcctxn
+	reader, err := server.storage.Reader(req.GetContext())
+	if err != nil {
+		return &kvrpcpb.ResolveLockResponse{}, err
+	}
+	defer reader.Close()
+	txn := mvcc.NewMvccTxn(reader, req.GetStartVersion())
+
+	//2.获取本事务所有锁定的keys
+	keys, err := txn.GetKeysInLock()
+	if err != nil {
+		return &kvrpcpb.ResolveLockResponse{}, err
+	}
+	//如果没有key锁定，不作操作
+	if len(keys) == 0 {
+		return &kvrpcpb.ResolveLockResponse{}, nil
+	}
+
+	//3.回滚或提交，取决于CommitVersion(Q:为什么不是取决PrimaryKey?）
+	if req.CommitVersion == 0 {
+		//回滚
+		resp, err := server.KvBatchRollback(nil, &kvrpcpb.BatchRollbackRequest{
+			Context:      req.Context,
+			StartVersion: req.StartVersion,
+			Keys:         keys,
+		})
+		return &kvrpcpb.ResolveLockResponse{
+			RegionError: resp.RegionError,
+			Error:       resp.Error,
+		}, err
+	} else {
+		//提交
+		resp, err := server.KvCommit(nil, &kvrpcpb.CommitRequest{
+			Context:       req.Context,
+			StartVersion:  req.StartVersion,
+			Keys:          keys,
+			CommitVersion: req.CommitVersion,
+		})
+		return &kvrpcpb.ResolveLockResponse{
+			RegionError: resp.RegionError,
+			Error:       resp.Error,
+		}, err
+	}
 }
 
 // SQL push down commands.
