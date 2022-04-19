@@ -218,8 +218,61 @@ func (server *Server) KvCommit(_ context.Context, req *kvrpcpb.CommitRequest) (*
 
 func (server *Server) KvScan(_ context.Context, req *kvrpcpb.ScanRequest) (*kvrpcpb.ScanResponse, error) {
 	// Your Code Here (4C).
+	//1.由req.Context创建reader，进而创建mvcctxn
+	reader, err := server.storage.Reader(req.GetContext())
+	if err != nil {
+		return &kvrpcpb.ScanResponse{}, err
+	}
+	defer reader.Close()
+	txn := mvcc.NewMvccTxn(reader, req.GetVersion())
 
-	return nil, nil
+	//2.创建scanner
+	scanner := mvcc.NewScanner(req.StartKey, txn)
+	defer scanner.Close()
+
+	//3.scanner调用Next()，取limit个数的值，注意事务的处理
+	var kvs []*kvrpcpb.KvPair
+	limit := req.GetLimit()
+	for limit > 0 {
+		//2.1 scanner.Next()，迭代取pair对
+		key, value, err := scanner.Next()
+		if err != nil {
+			return &kvrpcpb.ScanResponse{}, err
+		}
+		//2.2 检查key是否存在
+		if key == nil {
+			break
+		}
+		//2.3 检查数据key上是否有锁
+		lock, err := txn.GetLock(key)
+		if err != nil {
+			return &kvrpcpb.ScanResponse{}, err
+		}
+		//如果有锁，且锁事务的startTs<本事务
+		if lock != nil && txn.StartTS >= lock.Ts {
+			kvs = append(kvs, &kvrpcpb.KvPair{
+				Error: &kvrpcpb.KeyError{
+					Locked: &kvrpcpb.LockInfo{
+						PrimaryLock: lock.Primary,
+						LockVersion: lock.Ts,
+						Key:         key,
+						LockTtl:     lock.Ttl,
+					},
+				},
+			})
+			limit--
+			continue
+		}
+		//2.4 正常情况，创建pair对并append
+		pair := &kvrpcpb.KvPair{Key: key, Value: value}
+		kvs = append(kvs, pair)
+		limit--
+	}
+
+	if len(kvs) == 0 {
+		return &kvrpcpb.ScanResponse{}, err
+	}
+	return &kvrpcpb.ScanResponse{Pairs: kvs}, err
 }
 
 //检查事务的状态：锁未超时；锁超时；
@@ -238,11 +291,51 @@ func (server *Server) KvCheckTxnStatus(_ context.Context, req *kvrpcpb.CheckTxnS
 	//2.1 如果还有锁
 	if lock != nil {
 		//检查锁是否超时
-
+		//2.1.1 如果锁超时
+		if mvcc.PhysicalTime(lock.Ts)+lock.Ttl <= mvcc.PhysicalTime(req.CurrentTs) {
+			//abort事务：解锁，删除数据，将Write记录置为WriteKindRollback
+			txn.DeleteLock(req.PrimaryKey)
+			txn.DeleteValue(req.PrimaryKey)
+			txn.PutWrite(req.PrimaryKey, req.LockTs, &mvcc.Write{
+				StartTS: req.LockTs,
+				Kind:    mvcc.WriteKindRollback,
+			})
+			err = server.storage.Write(req.Context, txn.Writes())
+			if err == nil {
+				return &kvrpcpb.CheckTxnStatusResponse{
+					LockTtl: 0,
+					Action:  kvrpcpb.Action_TTLExpireRollback,
+				}, nil
+			}
+		} else {
+			//2.1.2 锁没有超时
+			return &kvrpcpb.CheckTxnStatusResponse{
+				LockTtl: lock.Ttl,
+			}, nil
+		}
 	} else {
-
+		//2.2 没有lock，检查事务的提交记录(以主键为准)
+		write, ts, err := txn.CurrentWrite(req.PrimaryKey)
+		if write != nil {
+			//2.2.1 已经提交且不是WriteKindRollback类型
+			if write.Kind != mvcc.WriteKindRollback {
+				return &kvrpcpb.CheckTxnStatusResponse{
+					CommitVersion: ts,
+				}, err
+			}
+		}
+		//2.2.2 WriteKindRollback和其他情况
+		txn.PutWrite(req.PrimaryKey, req.LockTs, &mvcc.Write{
+			StartTS: req.LockTs,
+			Kind:    mvcc.WriteKindRollback,
+		})
+		err = server.storage.Write(req.Context, txn.Writes())
+		if err == nil {
+			return &kvrpcpb.CheckTxnStatusResponse{
+				Action: kvrpcpb.Action_LockNotExistRollback,
+			}, nil
+		}
 	}
-
 	return &kvrpcpb.CheckTxnStatusResponse{}, err
 }
 
