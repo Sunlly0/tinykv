@@ -433,7 +433,7 @@ func (ps *PeerStorage) SaveReadyState(ready *raft.Ready) (*ApplySnapResult, erro
 	if !raft.IsEmptyHardState(ready.HardState) {
 		ps.raftState.HardState = &ready.HardState
 	}
-	//4.存储至raftdv
+	//4.存储至raftdb
 	err = raftWB.SetMeta(meta.RaftStateKey(ps.region.Id), ps.raftState)
 	if err != nil {
 		panic(err)
