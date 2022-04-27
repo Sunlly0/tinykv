@@ -699,23 +699,7 @@ func (r *Raft) handleAppendEntries(m pb.Message) {
 			m.Entries = m.Entries[r.RaftLog.FirstIndex-(m.Index+1):]
 		}
 	}
-	// log.Infof("++---- %d handleAppend: first:%d last:%d, len:%d, m.Index:%d, lenAppend:%d", r.id, r.RaftLog.FirstIndex, r.RaftLog.LastIndex(), len(r.RaftLog.entries), m.Index, len(m.Entries))
-	// // log.Infof("***commit:%d", r.RaftLog.committed)
-	// // log.Infof("***applied:%d", r.RaftLog.applied)
-	// //3.2 取接收者的log[prevLogIndex]看能否和prevLogTerm能匹配上
-	// logTerm, err := r.RaftLog.Term(m.Index)
-	// log.Infof("++---- %d handleAppend: logTerm:%d, m.LogTerm:%d", r.id, logTerm, m.LogTerm)
-	// if err != nil {
-	// 	log.Infof("***panic: Term:%d", m.Index)
-	// 	panic(err)
-	// }
-	// //不能匹配：return false
-	// if logTerm != m.LogTerm {
-	// 	// log.Infof("&&&3: sendAppenResponse:")
-	// 	// log.Infof("++---- %d handleAppend: logTerm:%d, m.LogTerm:%d", r.id, logTerm, m.LogTerm)
-	// 	r.sendAppendResponse(m.From, false, None, lastLogIndex+1)
-	// 	return
-	// } else {
+
 	//可以匹配上
 	if len(m.Entries) > 0 {
 		if len(r.RaftLog.entries) == 0 {
@@ -852,9 +836,9 @@ func (r *Raft) handleHeartbeatResponse(m pb.Message) {
 		}
 	} else {
 		//2.否则保持领导者状态，检查Match，如果低于自己的LastLogIndex则发送Append同步
-		// lastLogTerm, _ := r.RaftLog.Term(r.RaftLog.LastIndex())
-		// if m.LogTerm < lastLogTerm || m.LogTerm == lastLogTerm && m.Index < r.RaftLog.LastIndex() {
-		if r.Prs[m.From].Match < r.RaftLog.LastIndex() {
+		lastLogTerm, _ := r.RaftLog.Term(r.RaftLog.LastIndex())
+		if m.LogTerm < lastLogTerm || m.LogTerm == lastLogTerm && m.Index < r.RaftLog.LastIndex() {
+			// if r.Prs[m.From].Match < r.RaftLog.LastIndex() {
 			r.sendAppend(m.From)
 		}
 	}

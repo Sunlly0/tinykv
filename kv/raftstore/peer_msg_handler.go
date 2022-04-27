@@ -188,7 +188,7 @@ func (d *peerMsgHandler) processRequest(entry *eraftpb.Entry, msg *raft_cmdpb.Ra
 		}
 	}
 	// apply to kv (Put/Delete)
-	// 每个客户端都需要处理
+	// 每个服务端都需要处理
 	switch req.CmdType {
 	case raft_cmdpb.CmdType_Get:
 	case raft_cmdpb.CmdType_Put:
@@ -198,7 +198,7 @@ func (d *peerMsgHandler) processRequest(entry *eraftpb.Entry, msg *raft_cmdpb.Ra
 	case raft_cmdpb.CmdType_Snap:
 	}
 	//callback after applying (Get/Snap)
-	//只用一个客户端（接收到proposal的）处理并返回就可以了
+	//只用一个客服务端（接收到proposal的）处理并返回就可以了
 	//回复消息
 	d.handleProposal(entry, func(p *proposal) {
 		resp := &raft_cmdpb.RaftCmdResponse{Header: &raft_cmdpb.RaftResponseHeader{}}

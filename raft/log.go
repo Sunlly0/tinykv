@@ -157,7 +157,7 @@ func (l *RaftLog) LastIndex() uint64 {
 	if !IsEmptySnap(l.pendingSnapshot) {
 		return l.pendingSnapshot.Metadata.Index
 	}
-	//2.如果没有entries
+	//3.如果没有entries
 	if len(l.entries) == 0 {
 		index, _ := l.storage.LastIndex()
 		if index > 0 {
