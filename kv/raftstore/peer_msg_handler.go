@@ -68,23 +68,7 @@ func (d *peerMsgHandler) getRequestKey(req *raft_cmdpb.Request) []byte {
 
 //by Sunlly
 func (d *peerMsgHandler) handleProposal(entry *eraftpb.Entry, handle func(*proposal)) {
-	// if len(d.proposals) > 0 {
-	// 	p := d.proposals[0]
-	// 	if p.index == entry.Index {
-	// 		if p.term != entry.Term {
-	// 			NotifyStaleReq(entry.Term, p.cb)
-	// 		} else {
-	// 			handle(p)
-	// 		}
-	// 	}
-	// 	if p.index > entry.Index {
-	// 		return
-	// 	}
-	// 	if entry.Term == p.term && entry.Index > p.index {
-	// 		NotifyStaleReq(p.term, p.cb)
-	// 	}
-	// 	d.proposals = d.proposals[1:]
-	// }
+
 	for len(d.proposals) > 0 {
 		proposal := d.proposals[0]
 		//1.过期的entry，已经被其他执行了
@@ -111,11 +95,6 @@ func (d *peerMsgHandler) handleProposal(entry *eraftpb.Entry, handle func(*propo
 		if entry.Index == proposal.index && entry.Term == proposal.term {
 			handle(proposal)
 			d.proposals = d.proposals[1:]
-			// if response.Header == nil {
-			// 	response.Header = &raft_cmdpb.RaftResponseHeader{}
-			// }
-			// // proposal.cb.Txn = txn
-			// proposal.cb.Done(response)
 		}
 	}
 }
@@ -169,8 +148,6 @@ func (d *peerMsgHandler) processConfChange(entry *eraftpb.Entry, cc *eraftpb.Con
 		// panic(err)
 		return
 	}
-	// log.Infof("%d processConfChange", d.PeerId())
-	// PrevRegion := region
 	//2.依据changetype(addnode,removenode)做不同的执行
 	switch cc.ChangeType {
 	case eraftpb.ConfChangeType_AddNode:
@@ -246,7 +223,6 @@ func (d *peerMsgHandler) processConfChange(entry *eraftpb.Entry, cc *eraftpb.Con
 	if d.IsLeader() {
 		d.HeartbeatScheduler(d.ctx.schedulerTaskSender)
 	}
-
 }
 
 //2c 快照 by Sunlly
@@ -268,7 +244,8 @@ func (d *peerMsgHandler) processAdminRequest(entry *eraftpb.Entry, msg *raft_cmd
 	case raft_cmdpb.AdminCmdType_Split:
 		//0.检查region
 		log.Infof("%d process Split: regionVer:%d, msgVer:%d", d.PeerId(), d.Region().RegionEpoch.GetVersion(), msg.Header.RegionEpoch.Version)
-		region := d.Region()
+		region := &metapb.Region{}
+		util.CloneMsg(d.Region(), region)
 		err := util.CheckRegionEpoch(msg, region, true)
 		if err != nil {
 			if errEpochNotMatching, ok := err.(*util.ErrEpochNotMatch); ok {
@@ -293,7 +270,7 @@ func (d *peerMsgHandler) processAdminRequest(entry *eraftpb.Entry, msg *raft_cmd
 		log.Infof("*** old region: regionId: %d, startKey: %v, endKey: %v ", region.Id, region.GetStartKey(), region.GetEndKey())
 		log.Infof("--- %s on split with %v", d.Tag, split.SplitKey)
 		log.Infof("*** new region: regionId: %d, startKey: %v, endKey: %v ", req.Split.NewRegionId, split.SplitKey, region.GetEndKey())
-		PrevRegion := region
+		// PrevRegion := region
 		newregion := &metapb.Region{}
 		util.CloneMsg(region, newregion)
 		//2.修改旧分区的key
@@ -309,6 +286,16 @@ func (d *peerMsgHandler) processAdminRequest(entry *eraftpb.Entry, msg *raft_cmd
 		//4.持久化region信息
 		meta.WriteRegionState(wb, region, rspb.PeerState_Normal)
 		meta.WriteRegionState(wb, newregion, rspb.PeerState_Normal)
+
+		//6.修改storeMeta信息
+		d.ctx.storeMeta.Lock() //将加锁放在createPeer 之前，能否解决 createPeer 和 replicatePeer 之间的冲突? by Sunlly 2022.5.5
+		// d.ctx.storeMeta.regionRanges.Delete(&regionItem{region: PrevRegion})
+		d.ctx.storeMeta.regionRanges.ReplaceOrInsert(&regionItem{region: region})
+		d.ctx.storeMeta.regionRanges.ReplaceOrInsert(&regionItem{region: newregion})
+		d.ctx.storeMeta.regions[region.Id] = region
+		d.ctx.storeMeta.regions[req.Split.NewRegionId] = newregion
+		d.ctx.storeMeta.Unlock()
+
 		//5.创建Peer并注册router，发送MsgTypeStart启动peer
 		newpeer, _ := createPeer(d.ctx.store.Id, d.ctx.cfg, d.ctx.regionTaskSender, d.ctx.engine, newregion)
 		d.ctx.router.register(newpeer)
@@ -316,14 +303,7 @@ func (d *peerMsgHandler) processAdminRequest(entry *eraftpb.Entry, msg *raft_cmd
 			RegionID: req.Split.NewRegionId,
 			Type:     message.MsgTypeStart,
 		})
-		//6.修改storeMeta信息
-		d.ctx.storeMeta.Lock()
-		d.ctx.storeMeta.regionRanges.Delete(&regionItem{region: PrevRegion})
-		d.ctx.storeMeta.regionRanges.ReplaceOrInsert(&regionItem{region: region})
-		d.ctx.storeMeta.regionRanges.ReplaceOrInsert(&regionItem{region: newregion})
-		d.ctx.storeMeta.regions[region.Id] = region
-		d.ctx.storeMeta.regions[req.Split.NewRegionId] = newregion
-		d.ctx.storeMeta.Unlock()
+
 		//7. callback回复
 		resp := &raft_cmdpb.RaftCmdResponse{
 			Header: &raft_cmdpb.RaftResponseHeader{},
