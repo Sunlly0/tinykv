@@ -3,9 +3,9 @@ clearFunc() {
 	for FOLDER in $(ls $DES_FOLDER); do
 		#  截取test
 		test=$(expr substr $FOLDER 1 4)
-		# if [ "$test" = "test" ]; then
-		# 	$(rm -fr $DES_FOLDER/$FOLDER)
-		# fi
+		if [ "$test" = "test" ]; then
+			$(rm -fr $DES_FOLDER/$FOLDER)
+		fi
 	done
 }
 for ((i = 1; i <= 150; i++)); do

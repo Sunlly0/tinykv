@@ -259,11 +259,13 @@ func (d *peerMsgHandler) processAdminRequest(entry *eraftpb.Entry, msg *raft_cmd
 		split := req.GetSplit()
 		err2 := util.CheckKeyInRegion(split.SplitKey, region)
 		if err2 != nil {
-			// log.Infof("Split err: checkkeyInRegion, regionId: %d, startKey: %v, endKey: %v ", region.Id, region.GetStartKey(), region.GetEndKey())
-			// log.Infof("--- %s on split with %v", d.Tag, split.SplitKey)
 			d.handleProposal(entry, func(p *proposal) {
 				p.cb.Done(ErrResp(err2))
 			})
+			return
+		}
+		//检查 request 中的 Peer 数量是否与 region 一致
+		if len(region.Peers) != len(req.Split.NewPeerIds) {
 			return
 		}
 		//1.生成新region
@@ -294,6 +296,7 @@ func (d *peerMsgHandler) processAdminRequest(entry *eraftpb.Entry, msg *raft_cmd
 		d.ctx.storeMeta.regionRanges.ReplaceOrInsert(&regionItem{region: newregion})
 		d.ctx.storeMeta.regions[region.Id] = region
 		d.ctx.storeMeta.regions[req.Split.NewRegionId] = newregion
+		d.peerStorage.region = region
 		d.ctx.storeMeta.Unlock()
 
 		//5.创建Peer并注册router，发送MsgTypeStart启动peer
